@@ -3,7 +3,6 @@ use futures::{
     StreamExt,
     TryStreamExt,
 };
-use tokio_stream::Stream;
 use tonic::{
     Request,
     Response,
@@ -12,7 +11,10 @@ use tonic::{
 
 use crate::{
     config::Config,
-    convex_api::ConvexApi,
+    convex_api::{
+        ConvexApi,
+        Source,
+    },
     fivetran_sdk::{
         connector_server::Connector,
         schema_response,
@@ -34,15 +36,15 @@ use crate::{
     },
     sync::{
         sync,
-        Source,
         State,
     },
 };
 
+type ConnectorResult<T> = Result<Response<T>, Status>;
+
+/// Implements the gRPC server endpoints used by Fivetran.
 #[derive(Debug, Default)]
 pub struct ConvexConnector {}
-
-type ConnectorResult<T> = Result<Response<T>, Status>;
 
 impl ConvexConnector {
     async fn _schema(&self, request: Request<SchemaRequest>) -> anyhow::Result<SchemaResponse> {
@@ -65,6 +67,9 @@ impl ConvexConnector {
                                 r#type: match column_name.as_str() {
                                     "_id" => DataType::String,
                                     "_creationTime" => DataType::UtcDatetime,
+                                    // We map every non-system column to the “unspecified” data type
+                                    // and let Fivetran infer the correct column type from the data
+                                    // it receives.
                                     _ => DataType::Unspecified,
                                 } as i32,
                                 primary_key: column_name == "_id",
@@ -76,14 +81,14 @@ impl ConvexConnector {
                 .collect(),
         };
 
+        // Here, `WithoutSchema` means that there is no hierarchical level above tables,
+        // not that the data is unstructured. Fivetran uses the same meaning of “schema”
+        // as Postgres, not the one used in Convex. We do this because the connector is
+        // already set up for a particular Convex deployment.
         Ok(SchemaResponse {
             response: Some(schema_response::Response::WithoutSchema(tables)),
         })
     }
-}
-
-pub trait SizedStream: Stream<Item = <Self as SizedStream>::Item> + Sized {
-    type Item;
 }
 
 #[tonic::async_trait]

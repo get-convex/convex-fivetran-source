@@ -12,6 +12,7 @@ homepage = "https://www.convex.dev/"
 [dependencies]
 anyhow = { version = "1" }
 async-trait = { version = "0.1" }
+clap = { version = "^4.1.8" }
 convex = { version = "=0.3.1" }
 derive_more = { version = "0.99" }
 futures = { version = "0.3" }
@@ -27,6 +28,7 @@ thiserror = { version = "1" }
 tokio = { version = "1" }
 tokio-stream = { version = "^0.1.8" }
 tonic = { version = "0.9.0" }
+tracing = { version = "0.1" }
 url = { version = "2" }
 
 [build-dependencies]

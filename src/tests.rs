@@ -27,6 +27,7 @@ use crate::{
         DocumentDeltasResponse,
         ListSnapshotResponse,
         SnapshotValue,
+        Source,
         TableName,
     },
     fivetran_sdk::{
@@ -35,10 +36,8 @@ use crate::{
         OpType,
     },
     sync::{
-        delta_sync,
-        initial_sync,
-        Checkpoint,
-        Source,
+        sync,
+        State,
         UpdateMessage,
     },
 };
@@ -182,7 +181,7 @@ impl Source for FakeSource {
     async fn list_snapshot(
         &self,
         snapshot: Option<i64>,
-        cursor: Option<String>,
+        cursor: Option<Cursor>,
         table_name: Option<String>,
     ) -> anyhow::Result<ListSnapshotResponse> {
         if table_name.is_some() {
@@ -193,7 +192,7 @@ impl Source for FakeSource {
             panic!("Unexpected snapshot value");
         }
 
-        let cursor = cursor.map(|c| c.parse().unwrap()).unwrap_or(0);
+        let cursor: usize = cursor.map(|c| c.0.try_into().unwrap()).unwrap_or(0);
         let values_per_call = 10;
         let values: Vec<SnapshotValue> = self
             .tables
@@ -246,32 +245,29 @@ impl Source for FakeSource {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Debug, PartialEq)]
 struct FakeDestination {
-    logs: Vec<(LogLevel, String)>,
-    tables: HashMap<String, Vec<HashMap<String, FivetranValue>>>,
-    checkpoint: Option<Checkpoint>,
+    current_data: FakeDestinationData,
+    checkpointed_data: FakeDestinationData,
+    state: Option<State>,
 }
 
-impl Default for FakeDestination {
-    fn default() -> Self {
-        Self {
-            logs: vec![],
-            tables: hashmap![],
-            checkpoint: None,
-        }
-    }
+#[derive(Default, Debug, PartialEq, Clone)]
+struct FakeDestinationData {
+    logs: Vec<(LogLevel, String)>,
+    tables: HashMap<String, Vec<HashMap<String, FivetranValue>>>,
 }
 
 impl FakeDestination {
     fn has_log(&self, substring: &str) -> bool {
-        self.logs
+        self.current_data
+            .logs
             .iter()
             .any(|(_, message)| message.contains(substring))
     }
 
-    fn latest_checkpoint(&self) -> Option<Checkpoint> {
-        self.checkpoint.clone()
+    fn latest_state(&self) -> Option<State> {
+        self.state.clone()
     }
 
     async fn receive(&mut self, stream: impl Stream<Item = anyhow::Result<UpdateMessage>>) {
@@ -282,8 +278,7 @@ impl FakeDestination {
 
             match result.expect("Unexpected error received") {
                 UpdateMessage::Log(level, message) => {
-                    println!("[{:?}] {}", level, message);
-                    self.logs.push((level, message));
+                    self.current_data.logs.push((level, message));
                 },
                 UpdateMessage::Update {
                     schema_name,
@@ -295,11 +290,12 @@ impl FakeDestination {
                         panic!("Schemas not supported by the fake");
                     }
 
-                    if !self.tables.contains_key(&table_name) {
-                        self.tables.insert(table_name.clone(), vec![]);
+                    if !self.current_data.tables.contains_key(&table_name) {
+                        self.current_data.tables.insert(table_name.clone(), vec![]);
                     }
 
                     let table = self
+                        .current_data
                         .tables
                         .get_mut(&table_name)
                         .expect("Unknown table name");
@@ -319,8 +315,9 @@ impl FakeDestination {
                         _ => panic!("Operation not supported by the fake"),
                     };
                 },
-                UpdateMessage::Checkpoint(checkpoint) => {
-                    self.checkpoint = Some(checkpoint);
+                UpdateMessage::Checkpoint(state) => {
+                    self.checkpointed_data = self.current_data.clone();
+                    self.state = Some(state);
                 },
             }
         }
@@ -332,18 +329,29 @@ async fn initial_sync_copies_documents_from_source_to_destination() -> anyhow::R
     let source = FakeSource::seeded();
     let mut destination = FakeDestination::default();
 
-    destination.receive(initial_sync(source.clone())).await;
+    destination
+        .receive(sync(source.clone(), State::default()))
+        .await;
 
     assert!(destination.has_log("Initial sync successful"));
 
-    assert_eq!(source.tables.len(), destination.tables.len());
+    assert_eq!(
+        source.tables.len(),
+        destination.checkpointed_data.tables.len()
+    );
     assert_eq!(
         source.tables.get("table1").unwrap().len(),
-        destination.tables.get("table1").unwrap().len(),
+        destination
+            .checkpointed_data
+            .tables
+            .get("table1")
+            .unwrap()
+            .len(),
     );
 
     assert_eq!(
         destination
+            .checkpointed_data
             .tables
             .get("table1")
             .unwrap()
@@ -356,6 +364,7 @@ async fn initial_sync_copies_documents_from_source_to_destination() -> anyhow::R
 
     assert_eq!(
         destination
+            .checkpointed_data
             .tables
             .get("table1")
             .unwrap()
@@ -371,16 +380,22 @@ async fn initial_sync_copies_documents_from_source_to_destination() -> anyhow::R
 
 /// Verifies that the source and the destination are in sync by starting a new
 /// initial sync and verifying that the destinations match.
-async fn assert_in_sync(source: impl Source, destination: &FakeDestination) {
+async fn assert_in_sync(source: impl Source + 'static, destination: &FakeDestination) {
     let mut new_sync = FakeDestination::default();
-    new_sync.receive(initial_sync(source)).await;
-    assert_eq!(destination.tables, new_sync.tables);
+    new_sync.receive(sync(source, State::default())).await;
+    assert_eq!(
+        destination.checkpointed_data.tables,
+        new_sync.checkpointed_data.tables
+    );
 }
 
-async fn assert_not_in_sync(source: impl Source, destination: &FakeDestination) {
+async fn assert_not_in_sync(source: impl Source + 'static, destination: &FakeDestination) {
     let mut new_sync = FakeDestination::default();
-    new_sync.receive(initial_sync(source)).await;
-    assert_ne!(destination.tables, new_sync.tables);
+    new_sync.receive(sync(source, State::default())).await;
+    assert_ne!(
+        destination.checkpointed_data.tables,
+        new_sync.checkpointed_data.tables
+    );
 }
 
 #[tokio::test]
@@ -390,7 +405,9 @@ async fn initial_sync_synchronizes_the_destination_with_the_source() -> anyhow::
 
     assert_not_in_sync(source.clone(), &destination).await;
 
-    destination.receive(initial_sync(source.clone())).await;
+    destination
+        .receive(sync(source.clone(), State::default()))
+        .await;
 
     assert_in_sync(source, &destination).await;
 
@@ -402,8 +419,10 @@ async fn sync_after_adding_a_document() -> anyhow::Result<()> {
     let mut source = FakeSource::seeded();
     let mut destination = FakeDestination::default();
 
-    destination.receive(initial_sync(source.clone())).await;
-    let checkpoint = destination.latest_checkpoint().unwrap();
+    destination
+        .receive(sync(source.clone(), State::default()))
+        .await;
+    let state = destination.latest_state().unwrap();
 
     source.insert(
         "table1",
@@ -411,9 +430,7 @@ async fn sync_after_adding_a_document() -> anyhow::Result<()> {
             "name".to_string() => json!("New document"),
         },
     );
-    destination
-        .receive(delta_sync(source.clone(), checkpoint))
-        .await;
+    destination.receive(sync(source.clone(), state)).await;
     assert_in_sync(source, &destination).await;
 
     Ok(())
@@ -424,8 +441,10 @@ async fn sync_after_modifying_a_document() -> anyhow::Result<()> {
     let mut source = FakeSource::seeded();
     let mut destination = FakeDestination::default();
 
-    destination.receive(initial_sync(source.clone())).await;
-    let checkpoint = destination.latest_checkpoint().unwrap();
+    destination
+        .receive(sync(source.clone(), State::default()))
+        .await;
+    let state = destination.latest_state().unwrap();
 
     source.patch(
         "table1",
@@ -434,9 +453,7 @@ async fn sync_after_modifying_a_document() -> anyhow::Result<()> {
             "name": "New name",
         }),
     );
-    destination
-        .receive(delta_sync(source.clone(), checkpoint))
-        .await;
+    destination.receive(sync(source.clone(), state)).await;
     assert_in_sync(source, &destination).await;
 
     Ok(())
@@ -447,13 +464,13 @@ async fn sync_after_deleting_a_document() -> anyhow::Result<()> {
     let mut source = FakeSource::seeded();
     let mut destination = FakeDestination::default();
 
-    destination.receive(initial_sync(source.clone())).await;
-    let checkpoint = destination.latest_checkpoint().unwrap();
+    destination
+        .receive(sync(source.clone(), State::default()))
+        .await;
+    let state = destination.latest_state().unwrap();
 
     source.delete("table1", 8);
-    destination
-        .receive(delta_sync(source.clone(), checkpoint))
-        .await;
+    destination.receive(sync(source.clone(), state)).await;
     assert_in_sync(source, &destination).await;
 
     Ok(())

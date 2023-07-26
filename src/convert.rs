@@ -93,7 +93,6 @@ fn to_fivetran_field(
     anyhow::Result::Ok(result)
 }
 
-#[allow(dead_code)]
 pub fn to_fivetran_row(
     convex_document: HashMap<String, JsonValue>,
 ) -> anyhow::Result<HashMap<String, FivetranValue>> {

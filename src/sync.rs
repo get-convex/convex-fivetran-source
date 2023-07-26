@@ -1,16 +1,11 @@
-use std::{
-    collections::HashMap,
-    fmt::Display,
-};
+use std::collections::HashMap;
 
 use anyhow::Context;
-use async_trait::async_trait;
 use futures::{
     stream::BoxStream,
     StreamExt,
 };
 use futures_async_stream::try_stream;
-use schemars::schema::Schema;
 use serde::{
     Deserialize,
     Serialize,
@@ -21,11 +16,7 @@ use crate::{
     convert::to_fivetran_row,
     convex_api::{
         Cursor,
-        DatabaseSchema,
-        DocumentDeltasResponse,
-        FieldName,
-        ListSnapshotResponse,
-        TableName,
+        Source,
     },
     fivetran_sdk::{
         self,
@@ -42,55 +33,145 @@ use crate::{
     },
 };
 
+/// The value currently used for the `version` field of [`State`].
 const CURSOR_VERSION: i64 = 1;
 
-#[async_trait]
-pub trait Source: Display + Send {
-    async fn json_schemas(&self) -> anyhow::Result<DatabaseSchema>;
+/// Stores the current synchronization state of a destination. A state will be
+/// send (as JSON) to Fivetran every time we perform a checkpoint, and will be
+/// returned to us every time Fivetran calls the `update` method of the
+/// connector.
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
+pub struct State {
+    /// The version of the connector that emitted this checkpoint. Could be used
+    /// in the future to support backward compatibility with older state
+    /// formats.
+    pub version: Option<i64>,
 
-    async fn list_snapshot(
-        &self,
-        snapshot: Option<i64>,
-        cursor: Option<String>,
-        table_name: Option<String>,
-    ) -> anyhow::Result<ListSnapshotResponse>;
+    #[serde(default)]
+    pub checkpoint: Checkpoint,
+}
 
-    async fn document_deltas(
-        &self,
-        cursor: Cursor,
-        table_name: Option<String>,
-    ) -> anyhow::Result<DocumentDeltasResponse>;
-
-    async fn get_columns(&self) -> anyhow::Result<HashMap<TableName, Vec<FieldName>>> {
-        let schema = self.json_schemas().await?;
-
-        schema
-            .0
-            .into_iter()
-            .map(|(table_name, table_schema)| {
-                let system_columns = ["_id", "_creationTime"].into_iter().map(String::from);
-                let user_columns = match table_schema {
-                    Schema::Bool(_) => vec![], // Empty table
-                    Schema::Object(schema) => schema
-                        .object
-                        .context("Unexpected non-object validator for a document")?
-                        .properties
-                        .into_keys()
-                        .filter(|key| !key.starts_with('_'))
-                        .collect(),
-                };
-
-                let columns = system_columns
-                    .chain(user_columns.into_iter())
-                    .map(FieldName)
-                    .collect();
-
-                Ok((table_name, columns))
-            })
-            .try_collect()
+impl State {
+    pub fn create(checkpoint: Checkpoint) -> Self {
+        Self {
+            version: Some(CURSOR_VERSION),
+            checkpoint,
+        }
     }
 }
 
+#[cfg(test)]
+impl Default for State {
+    fn default() -> Self {
+        Self::create(Checkpoint::default())
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
+pub enum Checkpoint {
+    /// A checkpoint emitted during the initial synchonization.
+    InitialSync {
+        snapshot: Option<i64>,
+        cursor: Option<Cursor>,
+    },
+    /// A checkpoint emitted after an initial synchronzation has been completed.
+    DeltaUpdates { cursor: Cursor },
+}
+
+impl Default for Checkpoint {
+    fn default() -> Self {
+        Checkpoint::InitialSync {
+            snapshot: None,
+            cursor: None,
+        }
+    }
+}
+
+#[cfg(test)]
+mod state_serialization_tests {
+    use proptest::prelude::*;
+
+    use crate::sync::{
+        Checkpoint,
+        State,
+    };
+
+    proptest! {
+        #![proptest_config(ProptestConfig {
+            failure_persistence: None, ..ProptestConfig::default()
+        })]
+        #[test]
+        fn state_json_roundtrips(value in any::<State>()) {
+            let json = serde_json::to_string(&value).unwrap();
+            prop_assert_eq!(value, serde_json::from_str(&json).unwrap());
+        }
+    }
+
+    #[test]
+    fn refuses_unknown_state_object() {
+        assert!(serde_json::from_str::<State>("{\"a\": \"b\"}").is_err());
+    }
+
+    #[test]
+    fn refuses_unknown_checkpoint_object() {
+        assert!(serde_json::from_str::<State>(
+            "{ \"version\": 1, \"snapshot\": { \"NewState\": { \"cursor\": 42 } } }"
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn deserializes_v1_initial_sync_checkpoints() {
+        assert_eq!(
+            serde_json::from_str::<State>(
+                "{ \"version\": 1, \"checkpoint\": { \"InitialSync\": { \"snapshot\": 42, \
+                 \"cursor\": 1337 } } }"
+            )
+            .unwrap(),
+            State {
+                version: Some(1),
+                checkpoint: Checkpoint::InitialSync {
+                    snapshot: Some(42),
+                    cursor: Some(1337.into()),
+                },
+            },
+        );
+    }
+
+    #[test]
+    fn deserializes_v1_delta_update_checkpoints() {
+        assert_eq!(
+            serde_json::from_str::<State>(
+                "{ \"version\": 1, \"checkpoint\": { \"DeltaUpdates\": { \"cursor\": 42 } } }"
+            )
+            .unwrap(),
+            State {
+                version: Some(1),
+                checkpoint: Checkpoint::DeltaUpdates { cursor: 42.into() },
+            },
+        );
+    }
+
+    #[test]
+    fn deserializes_initial_state() {
+        assert!(matches!(
+            serde_json::from_str::<State>("{}").unwrap(),
+            State {
+                version: None,
+                checkpoint: Checkpoint::InitialSync {
+                    snapshot: None,
+                    cursor: None
+                },
+            },
+        ));
+    }
+}
+
+/// A simplification of the messages sent to Fivetran in the `update` endpoint.
 pub enum UpdateMessage {
     Log(LogLevel, String),
     Update {
@@ -99,9 +180,10 @@ pub enum UpdateMessage {
         op_type: OpType,
         row: HashMap<String, FivetranValue>,
     },
-    Checkpoint(Checkpoint),
+    Checkpoint(State),
 }
 
+/// Conversion of the simplified update message type to the actual gRPC type.
 impl From<UpdateMessage> for FivetranUpdateResponse {
     fn from(value: UpdateMessage) -> Self {
         FivetranUpdateResponse {
@@ -147,94 +229,29 @@ impl From<UpdateMessage> for FivetranUpdateResponse {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
-#[serde(untagged, deny_unknown_fields)]
-#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
-pub enum State {
-    Checkpoint(Checkpoint),
-    InitialSync {},
-}
-
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
-#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
-pub struct Checkpoint {
-    version: i64,
-    cursor: Cursor,
-}
-
-#[cfg(test)]
-mod state_serialization_tests {
-    use proptest::prelude::*;
-
-    use crate::sync::{
-        Checkpoint,
-        State,
-    };
-
-    proptest! {
-        #![proptest_config(ProptestConfig {
-            failure_persistence: None, ..ProptestConfig::default()
-        })]
-        #[test]
-        fn state_json_roundtrips(value in any::<State>()) {
-            let json = serde_json::to_string(&value).unwrap();
-            assert_eq!(value, serde_json::from_str(&json).unwrap());
-        }
-    }
-
-    #[test]
-    fn refuses_unknown_json_object() {
-        assert!(serde_json::from_str::<State>("{\"a\": \"b\"}").is_err());
-    }
-
-    #[test]
-    fn deserializes_v1_checkpoints() {
-        assert_eq!(
-            serde_json::from_str::<State>("{\"version\": 1, \"cursor\": 42}").unwrap(),
-            State::Checkpoint(Checkpoint {
-                version: 1,
-                cursor: 42.into(),
-            }),
-        );
-    }
-
-    #[test]
-    fn deserializes_initial_state() {
-        assert!(matches!(
-            serde_json::from_str::<State>("{}").unwrap(),
-            State::InitialSync {}
-        ));
-    }
-}
-
-impl Checkpoint {
-    pub fn create(cursor: Cursor) -> Self {
-        Self {
-            version: CURSOR_VERSION,
-            cursor,
-        }
-    }
-}
-
+/// Returns the stream that the `update` endpoint emits.
 pub fn sync(
     source: impl Source + 'static,
     state: State,
 ) -> BoxStream<'static, anyhow::Result<UpdateMessage>> {
-    match state {
-        State::InitialSync {} => initial_sync(source).boxed(),
-        State::Checkpoint(checkpoint) => delta_sync(source, checkpoint).boxed(),
+    match state.checkpoint {
+        Checkpoint::InitialSync { snapshot, cursor } => {
+            initial_sync(source, snapshot, cursor).boxed()
+        },
+        Checkpoint::DeltaUpdates { cursor } => delta_sync(source, cursor).boxed(),
     }
 }
 
+/// Performs (or resume) an initial synchronization.
 #[try_stream(ok = UpdateMessage, error = anyhow::Error)]
-pub async fn initial_sync(source: impl Source) {
+async fn initial_sync(source: impl Source, snapshot: Option<i64>, cursor: Option<Cursor>) {
     yield UpdateMessage::Log(
         LogLevel::Info,
         format!("Starting an initial sync from {source}"),
     );
 
-    let mut snapshot: Option<i64> = None;
-    let mut cursor: Option<String> = None;
+    let mut snapshot: Option<i64> = snapshot;
+    let mut cursor: Option<Cursor> = cursor;
     let mut has_more = true;
 
     while has_more {
@@ -251,22 +268,32 @@ pub async fn initial_sync(source: impl Source) {
 
         has_more = res.has_more;
         snapshot = Some(res.snapshot);
-        cursor = res.cursor;
+        cursor = Some(
+            res.cursor
+                .context("Missing cursor")?
+                .parse::<i64>()
+                .context("Unexpected cursor format")?
+                .into(),
+        );
     }
 
-    yield UpdateMessage::Checkpoint(Checkpoint::create(Cursor::from(snapshot.unwrap())));
+    yield UpdateMessage::Checkpoint(State::create(Checkpoint::DeltaUpdates {
+        cursor: Cursor::from(snapshot.unwrap()),
+    }));
 
     yield UpdateMessage::Log(LogLevel::Info, "Initial sync successful".to_string());
 }
 
+/// Synchronizes the changes that happened after an initial synchronization or
+/// delta synchronization has been completed.
 #[try_stream(ok = UpdateMessage, error = anyhow::Error)]
-pub async fn delta_sync(source: impl Source, checkpoint: Checkpoint) {
+async fn delta_sync(source: impl Source, cursor: Cursor) {
     yield UpdateMessage::Log(
         LogLevel::Info,
         format!("Starting to apply changes from {}", source),
     );
 
-    let mut cursor = checkpoint.cursor;
+    let mut cursor = cursor;
     let mut has_more = true;
     while has_more {
         let response = source.document_deltas(cursor, None).await?;
@@ -287,9 +314,9 @@ pub async fn delta_sync(source: impl Source, checkpoint: Checkpoint) {
         cursor = Cursor::from(response.cursor);
         has_more = response.has_more;
 
-        // It is safe to take a snapshot here, because document_deltas guarantees that
-        // the state given by one call is consistent.
-        yield UpdateMessage::Checkpoint(Checkpoint::create(cursor));
+        // It is safe to take a snapshot here, because document_deltas
+        // guarantees that the state given by one call is consistent.
+        yield UpdateMessage::Checkpoint(State::create(Checkpoint::DeltaUpdates { cursor }));
     }
 
     yield UpdateMessage::Log(LogLevel::Info, "Changes applied".to_string());

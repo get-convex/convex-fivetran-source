@@ -11,12 +11,20 @@ use crate::fivetran_sdk::{
 const CONFIG_KEY_DEPLOYMENT_URL: &str = "url";
 const CONFIG_KEY_DEPLOYMENT_KEY: &str = "key";
 
+/// The configuration parameters used by the connector, requested to users by
+/// the Fivetran UI. Users can obtain these values from the Convex dashboard in
+/// the deployment’s settings page.
 pub struct Config {
+    /// The domain where the deployment is hosted (e.g. "https://aware-llama-900.convex.cloud").
     pub deploy_url: Url,
+
+    /// The key giving admin permissions to the deployment
+    /// (e.g. "prod:aware-llama-900|016b26d3900d5e482f1780969c2fa608a773140fb221db21785a9b2775b50263da6a258301b6374ef72b4c120e237c20ac50")
     pub deploy_key: String,
 }
 
 impl Config {
+    /// Layout of the fields visible in the Fivetran UI
     pub fn fivetran_fields() -> Vec<FormField> {
         vec![
             FormField {
@@ -34,6 +42,8 @@ impl Config {
         ]
     }
 
+    /// Validates user-supplied configuration parameters
+    /// and creates a [`Config`] instance if they are valid.
     pub fn from_parameters(configuration: HashMap<String, String>) -> anyhow::Result<Self> {
         let Some(deploy_url) = configuration.get(CONFIG_KEY_DEPLOYMENT_URL) else {
             anyhow::bail!("Missing {CONFIG_KEY_DEPLOYMENT_URL}");
