@@ -28,7 +28,6 @@ thiserror = { version = "1" }
 tokio = { version = "1" }
 tokio-stream = { version = "^0.1.8" }
 tonic = { version = "0.9.0" }
-tracing = { version = "0.1" }
 url = { version = "2" }
 
 [build-dependencies]
@@ -39,4 +38,5 @@ tonic-build = { version = "0.9.0" }
 convex = { version = "=0.3.1", features = [ "testing" ] }
 proptest = { version = "1" }
 proptest-derive = { version = "0.3.0" }
+rand = { version = "0.8" }
 uuid = { version = "1.4" }

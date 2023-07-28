@@ -22,6 +22,7 @@ use std::{
 };
 
 use clap::Parser;
+use config::AllowAllHosts;
 use connector::ConvexConnector;
 use fivetran_sdk::connector_server::ConnectorServer;
 use tonic::transport::Server;
@@ -33,6 +34,11 @@ struct Args {
     /// The address of the socket the connector receives gRPC requests from
     #[arg(long, default_value_t = SocketAddr::from_str("[::]:50051").unwrap())]
     socket_address: SocketAddr,
+
+    /// Whether the connector is allowed to use any host as deployment URL,
+    /// instead of only Convex cloud deployments.
+    #[arg(long)]
+    allow_all_hosts: bool,
 }
 
 #[tokio::main]
@@ -40,9 +46,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let addr: SocketAddr = args.socket_address;
 
-    let connector = ConvexConnector::default();
+    let connector = ConvexConnector {
+        allow_all_hosts: AllowAllHosts(args.allow_all_hosts),
+    };
 
-    tracing::info!("Starting the connector on {}", addr);
+    println!("Starting the connector on {}", addr);
     Server::builder()
         .add_service(ConnectorServer::new(connector))
         .serve(addr)

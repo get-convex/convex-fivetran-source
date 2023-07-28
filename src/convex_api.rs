@@ -44,14 +44,14 @@ pub trait Source: Display + Send {
     async fn list_snapshot(
         &self,
         snapshot: Option<i64>,
-        cursor: Option<Cursor>,
+        cursor: Option<ListSnapshotCursor>,
         table_name: Option<String>,
     ) -> anyhow::Result<ListSnapshotResponse>;
 
     /// See https://docs.convex.dev/http-api/#get-apidocument_deltas
     async fn document_deltas(
         &self,
-        cursor: Cursor,
+        cursor: DocumentDeltasCursor,
         table_name: Option<String>,
     ) -> anyhow::Result<DocumentDeltasResponse>;
 
@@ -152,7 +152,7 @@ impl Source for ConvexApi {
     async fn list_snapshot(
         &self,
         snapshot: Option<i64>,
-        cursor: Option<Cursor>,
+        cursor: Option<ListSnapshotCursor>,
         table_name: Option<String>,
     ) -> anyhow::Result<ListSnapshotResponse> {
         self.get(
@@ -168,7 +168,7 @@ impl Source for ConvexApi {
 
     async fn document_deltas(
         &self,
-        cursor: Cursor,
+        cursor: DocumentDeltasCursor,
         table_name: Option<String>,
     ) -> anyhow::Result<DocumentDeltasResponse> {
         self.get(
@@ -188,9 +188,13 @@ impl Display for ConvexApi {
     }
 }
 
+#[derive(Display, Serialize, Deserialize, Debug, PartialEq, Eq, Clone, From, Into)]
+#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
+pub struct ListSnapshotCursor(pub String);
+
 #[derive(Display, Serialize, Deserialize, Debug, PartialEq, Eq, Clone, From, Into, Copy)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
-pub struct Cursor(pub i64);
+pub struct DocumentDeltasCursor(pub i64);
 
 #[derive(Deserialize, PartialEq, Eq, Hash, Display)]
 pub struct TableName(pub String);

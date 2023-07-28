@@ -29,11 +29,9 @@ fn set_protoc_path() {
 
 fn main() -> Result<()> {
     set_protoc_path();
-    println!("cargo:rerun-if-changed=protos");
-    let source = Path::new("protos/fivetran_sdk.proto");
-    if !source.exists() {
-        panic!("Please add {}", source.display());
-    }
-    tonic_build::configure().compile(&[source], &["protos/"])?;
+
+    tonic_build::compile_protos("protos/common.proto")?;
+    tonic_build::compile_protos("protos/connector_sdk.proto")?;
+
     Ok(())
 }

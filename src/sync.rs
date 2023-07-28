@@ -15,7 +15,8 @@ use value_type::Inner as FivetranValue;
 use crate::{
     convert::to_fivetran_row,
     convex_api::{
-        Cursor,
+        DocumentDeltasCursor,
+        ListSnapshotCursor,
         Source,
     },
     fivetran_sdk::{
@@ -76,10 +77,10 @@ pub enum Checkpoint {
     /// A checkpoint emitted during the initial synchonization.
     InitialSync {
         snapshot: Option<i64>,
-        cursor: Option<Cursor>,
+        cursor: Option<ListSnapshotCursor>,
     },
     /// A checkpoint emitted after an initial synchronzation has been completed.
-    DeltaUpdates { cursor: Cursor },
+    DeltaUpdates { cursor: DocumentDeltasCursor },
 }
 
 impl Default for Checkpoint {
@@ -129,14 +130,14 @@ mod state_serialization_tests {
         assert_eq!(
             serde_json::from_str::<State>(
                 "{ \"version\": 1, \"checkpoint\": { \"InitialSync\": { \"snapshot\": 42, \
-                 \"cursor\": 1337 } } }"
+                 \"cursor\": \"abc123\" } } }"
             )
             .unwrap(),
             State {
                 version: Some(1),
                 checkpoint: Checkpoint::InitialSync {
                     snapshot: Some(42),
-                    cursor: Some(1337.into()),
+                    cursor: Some(String::from("abc123").into()),
                 },
             },
         );
@@ -244,18 +245,27 @@ pub fn sync(
 
 /// Performs (or resume) an initial synchronization.
 #[try_stream(ok = UpdateMessage, error = anyhow::Error)]
-async fn initial_sync(source: impl Source, snapshot: Option<i64>, cursor: Option<Cursor>) {
+async fn initial_sync(
+    source: impl Source,
+    snapshot: Option<i64>,
+    cursor: Option<ListSnapshotCursor>,
+) {
     yield UpdateMessage::Log(
         LogLevel::Info,
         format!("Starting an initial sync from {source}"),
     );
 
     let mut snapshot: Option<i64> = snapshot;
-    let mut cursor: Option<Cursor> = cursor;
+    let mut cursor: Option<ListSnapshotCursor> = cursor;
     let mut has_more = true;
 
     while has_more {
-        let res = source.list_snapshot(snapshot, cursor, None).await?;
+        yield UpdateMessage::Checkpoint(State::create(Checkpoint::InitialSync {
+            snapshot,
+            cursor: cursor.clone(),
+        }));
+
+        let res = source.list_snapshot(snapshot, cursor.clone(), None).await?;
 
         for value in res.values {
             yield UpdateMessage::Update {
@@ -268,17 +278,11 @@ async fn initial_sync(source: impl Source, snapshot: Option<i64>, cursor: Option
 
         has_more = res.has_more;
         snapshot = Some(res.snapshot);
-        cursor = Some(
-            res.cursor
-                .context("Missing cursor")?
-                .parse::<i64>()
-                .context("Unexpected cursor format")?
-                .into(),
-        );
+        cursor = res.cursor.map(ListSnapshotCursor::from);
     }
 
     yield UpdateMessage::Checkpoint(State::create(Checkpoint::DeltaUpdates {
-        cursor: Cursor::from(snapshot.unwrap()),
+        cursor: DocumentDeltasCursor::from(snapshot.context("Missing snapshot from response")?),
     }));
 
     yield UpdateMessage::Log(LogLevel::Info, "Initial sync successful".to_string());
@@ -287,7 +291,7 @@ async fn initial_sync(source: impl Source, snapshot: Option<i64>, cursor: Option
 /// Synchronizes the changes that happened after an initial synchronization or
 /// delta synchronization has been completed.
 #[try_stream(ok = UpdateMessage, error = anyhow::Error)]
-async fn delta_sync(source: impl Source, cursor: Cursor) {
+async fn delta_sync(source: impl Source, cursor: DocumentDeltasCursor) {
     yield UpdateMessage::Log(
         LogLevel::Info,
         format!("Starting to apply changes from {}", source),
@@ -311,7 +315,7 @@ async fn delta_sync(source: impl Source, cursor: Cursor) {
             };
         }
 
-        cursor = Cursor::from(response.cursor);
+        cursor = DocumentDeltasCursor::from(response.cursor);
         has_more = response.has_more;
 
         // It is safe to take a snapshot here, because document_deltas

@@ -10,7 +10,10 @@ use tonic::{
 };
 
 use crate::{
-    config::Config,
+    config::{
+        AllowAllHosts,
+        Config,
+    },
     convex_api::{
         ConvexApi,
         Source,
@@ -22,7 +25,7 @@ use crate::{
         Column,
         ConfigurationFormRequest,
         ConfigurationFormResponse,
-        ConnectorTest,
+        ConfigurationTest,
         DataType,
         SchemaRequest,
         SchemaResponse,
@@ -40,15 +43,18 @@ use crate::{
     },
 };
 
-type ConnectorResult<T> = Result<Response<T>, Status>;
-
 /// Implements the gRPC server endpoints used by Fivetran.
-#[derive(Debug, Default)]
-pub struct ConvexConnector {}
+#[derive(Debug)]
+pub struct ConvexConnector {
+    pub allow_all_hosts: AllowAllHosts,
+}
+
+type ConnectorResult<T> = Result<Response<T>, Status>;
 
 impl ConvexConnector {
     async fn _schema(&self, request: Request<SchemaRequest>) -> anyhow::Result<SchemaResponse> {
-        let config = Config::from_parameters(request.into_inner().configuration)?;
+        let config =
+            Config::from_parameters(request.into_inner().configuration, self.allow_all_hosts)?;
         let source = ConvexApi { config };
 
         let columns = source.get_columns().await?;
@@ -103,7 +109,7 @@ impl Connector for ConvexConnector {
             schema_selection_supported: false,
             table_selection_supported: false,
             fields: Config::fivetran_fields(),
-            tests: vec![ConnectorTest {
+            tests: vec![ConfigurationTest {
                 name: "select".to_string(),
                 label: "Tests selection".to_string(),
             }],
@@ -111,14 +117,16 @@ impl Connector for ConvexConnector {
     }
 
     async fn test(&self, request: Request<TestRequest>) -> ConnectorResult<TestResponse> {
-        let config = match Config::from_parameters(request.into_inner().configuration) {
-            Ok(config) => config,
-            Err(error) => {
-                return Ok(Response::new(TestResponse {
-                    response: Some(test_response::Response::Failure(error.to_string())),
-                }));
-            },
-        };
+        let config =
+            match Config::from_parameters(request.into_inner().configuration, self.allow_all_hosts)
+            {
+                Ok(config) => config,
+                Err(error) => {
+                    return Ok(Response::new(TestResponse {
+                        response: Some(test_response::Response::Failure(error.to_string())),
+                    }));
+                },
+            };
         let source = ConvexApi { config };
 
         // Perform an API request to verify if the credentials work
@@ -141,7 +149,7 @@ impl Connector for ConvexConnector {
 
     async fn update(&self, request: Request<UpdateRequest>) -> ConnectorResult<Self::UpdateStream> {
         let inner = request.into_inner();
-        let config = match Config::from_parameters(inner.configuration) {
+        let config = match Config::from_parameters(inner.configuration, self.allow_all_hosts) {
             Ok(config) => config,
             Err(error) => {
                 return Err(Status::internal(error.to_string()));

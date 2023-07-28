@@ -7,11 +7,13 @@ use std::{
 
 use anyhow::Ok;
 use async_trait::async_trait;
+use derive_more::From;
 use futures::{
     Stream,
     StreamExt,
 };
 use maplit::hashmap;
+use rand::Rng;
 use schemars::schema::Schema;
 use serde_json::{
     json,
@@ -22,9 +24,10 @@ use value_type::Inner as FivetranValue;
 
 use crate::{
     convex_api::{
-        Cursor,
         DatabaseSchema,
+        DocumentDeltasCursor,
         DocumentDeltasResponse,
+        ListSnapshotCursor,
         ListSnapshotResponse,
         SnapshotValue,
         Source,
@@ -181,7 +184,7 @@ impl Source for FakeSource {
     async fn list_snapshot(
         &self,
         snapshot: Option<i64>,
-        cursor: Option<Cursor>,
+        cursor: Option<ListSnapshotCursor>,
         table_name: Option<String>,
     ) -> anyhow::Result<ListSnapshotResponse> {
         if table_name.is_some() {
@@ -192,7 +195,7 @@ impl Source for FakeSource {
             panic!("Unexpected snapshot value");
         }
 
-        let cursor: usize = cursor.map(|c| c.0.try_into().unwrap()).unwrap_or(0);
+        let cursor: usize = cursor.map(|c| c.0.parse().unwrap()).unwrap_or(0);
         let values_per_call = 10;
         let values: Vec<SnapshotValue> = self
             .tables
@@ -220,7 +223,7 @@ impl Source for FakeSource {
 
     async fn document_deltas(
         &self,
-        cursor: Cursor,
+        cursor: DocumentDeltasCursor,
         table_name: Option<String>,
     ) -> anyhow::Result<DocumentDeltasResponse> {
         if table_name.is_some() {
@@ -249,7 +252,7 @@ impl Source for FakeSource {
 struct FakeDestination {
     current_data: FakeDestinationData,
     checkpointed_data: FakeDestinationData,
-    state: Option<State>,
+    state: State,
 }
 
 #[derive(Default, Debug, PartialEq, Clone)]
@@ -266,17 +269,20 @@ impl FakeDestination {
             .any(|(_, message)| message.contains(substring))
     }
 
-    fn latest_state(&self) -> Option<State> {
+    fn latest_state(&self) -> State {
         self.state.clone()
     }
 
-    async fn receive(&mut self, stream: impl Stream<Item = anyhow::Result<UpdateMessage>>) {
+    async fn receive(
+        &mut self,
+        stream: impl Stream<Item = anyhow::Result<UpdateMessage>>,
+    ) -> anyhow::Result<()> {
         let mut stream = Box::pin(stream);
 
         while let (Some(result), new_stream) = stream.into_future().await {
             stream = new_stream;
 
-            match result.expect("Unexpected error received") {
+            match result? {
                 UpdateMessage::Log(level, message) => {
                     self.current_data.logs.push((level, message));
                 },
@@ -317,10 +323,12 @@ impl FakeDestination {
                 },
                 UpdateMessage::Checkpoint(state) => {
                     self.checkpointed_data = self.current_data.clone();
-                    self.state = Some(state);
+                    self.state = state;
                 },
             }
         }
+
+        Ok(())
     }
 }
 
@@ -330,8 +338,8 @@ async fn initial_sync_copies_documents_from_source_to_destination() -> anyhow::R
     let mut destination = FakeDestination::default();
 
     destination
-        .receive(sync(source.clone(), State::default()))
-        .await;
+        .receive(sync(source.clone(), destination.latest_state()))
+        .await?;
 
     assert!(destination.has_log("Initial sync successful"));
 
@@ -381,20 +389,26 @@ async fn initial_sync_copies_documents_from_source_to_destination() -> anyhow::R
 /// Verifies that the source and the destination are in sync by starting a new
 /// initial sync and verifying that the destinations match.
 async fn assert_in_sync(source: impl Source + 'static, destination: &FakeDestination) {
-    let mut new_sync = FakeDestination::default();
-    new_sync.receive(sync(source, State::default())).await;
+    let mut parallel_destination = FakeDestination::default();
+    parallel_destination
+        .receive(sync(source, parallel_destination.latest_state()))
+        .await
+        .expect("Unexpected error during parallel synchronization");
     assert_eq!(
         destination.checkpointed_data.tables,
-        new_sync.checkpointed_data.tables
+        parallel_destination.checkpointed_data.tables
     );
 }
 
 async fn assert_not_in_sync(source: impl Source + 'static, destination: &FakeDestination) {
-    let mut new_sync = FakeDestination::default();
-    new_sync.receive(sync(source, State::default())).await;
+    let mut parallel_destination = FakeDestination::default();
+    parallel_destination
+        .receive(sync(source, parallel_destination.latest_state()))
+        .await
+        .expect("Unexpected error during parallel synchronization");
     assert_ne!(
         destination.checkpointed_data.tables,
-        new_sync.checkpointed_data.tables
+        parallel_destination.checkpointed_data.tables
     );
 }
 
@@ -406,8 +420,8 @@ async fn initial_sync_synchronizes_the_destination_with_the_source() -> anyhow::
     assert_not_in_sync(source.clone(), &destination).await;
 
     destination
-        .receive(sync(source.clone(), State::default()))
-        .await;
+        .receive(sync(source.clone(), destination.latest_state()))
+        .await?;
 
     assert_in_sync(source, &destination).await;
 
@@ -420,9 +434,9 @@ async fn sync_after_adding_a_document() -> anyhow::Result<()> {
     let mut destination = FakeDestination::default();
 
     destination
-        .receive(sync(source.clone(), State::default()))
-        .await;
-    let state = destination.latest_state().unwrap();
+        .receive(sync(source.clone(), destination.latest_state()))
+        .await?;
+    let state = destination.latest_state();
 
     source.insert(
         "table1",
@@ -430,7 +444,7 @@ async fn sync_after_adding_a_document() -> anyhow::Result<()> {
             "name".to_string() => json!("New document"),
         },
     );
-    destination.receive(sync(source.clone(), state)).await;
+    destination.receive(sync(source.clone(), state)).await?;
     assert_in_sync(source, &destination).await;
 
     Ok(())
@@ -442,9 +456,9 @@ async fn sync_after_modifying_a_document() -> anyhow::Result<()> {
     let mut destination = FakeDestination::default();
 
     destination
-        .receive(sync(source.clone(), State::default()))
-        .await;
-    let state = destination.latest_state().unwrap();
+        .receive(sync(source.clone(), destination.latest_state()))
+        .await?;
+    let state = destination.latest_state();
 
     source.patch(
         "table1",
@@ -453,7 +467,7 @@ async fn sync_after_modifying_a_document() -> anyhow::Result<()> {
             "name": "New name",
         }),
     );
-    destination.receive(sync(source.clone(), state)).await;
+    destination.receive(sync(source.clone(), state)).await?;
     assert_in_sync(source, &destination).await;
 
     Ok(())
@@ -465,12 +479,83 @@ async fn sync_after_deleting_a_document() -> anyhow::Result<()> {
     let mut destination = FakeDestination::default();
 
     destination
-        .receive(sync(source.clone(), State::default()))
-        .await;
-    let state = destination.latest_state().unwrap();
+        .receive(sync(source.clone(), destination.latest_state()))
+        .await?;
 
     source.delete("table1", 8);
-    destination.receive(sync(source.clone(), state)).await;
+    destination
+        .receive(sync(source.clone(), destination.latest_state()))
+        .await?;
+    assert_in_sync(source, &destination).await;
+
+    Ok(())
+}
+
+/// Wrapper around a source that fails half of its calls.
+#[derive(From)]
+struct UnreliableSource {
+    source: FakeSource,
+}
+
+impl Display for UnreliableSource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.source.fmt(f)
+    }
+}
+
+impl UnreliableSource {
+    fn maybe_fail(&self) -> anyhow::Result<()> {
+        if rand::thread_rng().gen_bool(0.5) {
+            anyhow::bail!("Unreliable source error");
+        }
+
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl Source for UnreliableSource {
+    async fn json_schemas(&self) -> anyhow::Result<DatabaseSchema> {
+        self.maybe_fail()?;
+        self.source.json_schemas().await
+    }
+
+    async fn list_snapshot(
+        &self,
+        snapshot: Option<i64>,
+        cursor: Option<ListSnapshotCursor>,
+        table_name: Option<String>,
+    ) -> anyhow::Result<ListSnapshotResponse> {
+        self.maybe_fail()?;
+        self.source
+            .list_snapshot(snapshot, cursor, table_name)
+            .await
+    }
+
+    async fn document_deltas(
+        &self,
+        cursor: DocumentDeltasCursor,
+        table_name: Option<String>,
+    ) -> anyhow::Result<DocumentDeltasResponse> {
+        self.maybe_fail()?;
+        self.source.document_deltas(cursor, table_name).await
+    }
+}
+
+#[tokio::test]
+async fn can_perform_an_initial_sync_from_an_unreliable_source() -> anyhow::Result<()> {
+    let source = FakeSource::seeded();
+    let mut destination = FakeDestination::default();
+
+    while destination
+        .receive(sync(
+            UnreliableSource::from(source.clone()),
+            destination.latest_state(),
+        ))
+        .await
+        .is_err()
+    {}
+
     assert_in_sync(source, &destination).await;
 
     Ok(())
