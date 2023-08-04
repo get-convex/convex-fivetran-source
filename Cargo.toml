@@ -12,7 +12,7 @@ homepage = "https://www.convex.dev/"
 [dependencies]
 anyhow = { version = "1" }
 async-trait = { version = "0.1" }
-clap = { version = "^4.1.8" }
+clap = { features = [ "derive" ], version = "^4.1.8" }
 convex = { version = "=0.3.1" }
 derive_more = { version = "0.99" }
 futures = { version = "0.3" }
