@@ -34,12 +34,22 @@ impl Config {
                 name: CONFIG_KEY_DEPLOYMENT_URL.to_string(),
                 label: "Deployment URL".to_string(),
                 required: true,
+                description: Some(
+                    "The domain where the deployment is hosted (\"https://….convex.cloud\"). You \
+                     can find it in the deployment settings page of the Convex dashboard."
+                        .to_string(),
+                ),
                 r#type: Some(Type::TextField(TextField::PlainText as i32)),
             },
             FormField {
                 name: CONFIG_KEY_DEPLOYMENT_KEY.to_string(),
                 label: "Deploy Key".to_string(),
                 required: true,
+                description: Some(
+                    "The key giving access to your deployment. You can find it in the deployment \
+                     settings page of the Convex dashboard."
+                        .to_string(),
+                ),
                 r#type: Some(Type::TextField(TextField::Password as i32)),
             },
         ]
@@ -80,8 +90,6 @@ impl Config {
         {
             anyhow::bail!("Invalid deploy URL: must be a Convex deployment URL.");
         }
-
-        // TODO(Nicolas) CX-4232 Verify the domain in prod environments
 
         let Some(deploy_key) = configuration.get(CONFIG_KEY_DEPLOYMENT_KEY) else {
             anyhow::bail!("Missing {CONFIG_KEY_DEPLOYMENT_KEY}");
