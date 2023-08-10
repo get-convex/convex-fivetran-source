@@ -16,9 +16,10 @@ mod fivetran_sdk {
 #[cfg(test)]
 mod tests;
 
-use std::{
-    net::SocketAddr,
-    str::FromStr,
+use std::net::{
+    IpAddr,
+    Ipv6Addr,
+    SocketAddr,
 };
 
 use clap::Parser;
@@ -31,9 +32,9 @@ use tonic::transport::Server;
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// The address of the socket the connector receives gRPC requests from
-    #[arg(long, default_value_t = SocketAddr::from_str("[::]:50051").unwrap())]
-    socket_address: SocketAddr,
+    /// The port the connector receives gRPC requests from
+    #[arg(long, default_value_t = 50051)]
+    port: u16,
 
     /// Whether the connector is allowed to use any host as deployment URL,
     /// instead of only Convex cloud deployments.
@@ -44,7 +45,7 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
-    let addr: SocketAddr = args.socket_address;
+    let addr = SocketAddr::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), args.port);
 
     let connector = ConvexConnector {
         allow_all_hosts: AllowAllHosts(args.allow_all_hosts),

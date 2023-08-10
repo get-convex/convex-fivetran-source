@@ -16,11 +16,10 @@ $ ./convex_fivetran_source
 Starting the connector on [::]:50051
 ```
 
-You can change the socket address using the optional `--socket-address`
-parameter:
+You can change the port used using the optional `--port` parameter:
 
 ```
-$ ./convex_fivetran_source --socket-address [::]:1337
+$ ./convex_fivetran_source --port 1337
 Starting the connector on [::]:1337
 ```
 
