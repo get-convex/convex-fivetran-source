@@ -18,7 +18,7 @@ mod tests;
 
 use std::net::{
     IpAddr,
-    Ipv6Addr,
+    Ipv4Addr,
     SocketAddr,
 };
 
@@ -45,7 +45,7 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
-    let addr = SocketAddr::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), args.port);
+    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), args.port);
 
     let connector = ConvexConnector {
         allow_all_hosts: AllowAllHosts(args.allow_all_hosts),
