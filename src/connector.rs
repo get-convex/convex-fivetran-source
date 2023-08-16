@@ -110,8 +110,8 @@ impl Connector for ConvexConnector {
             table_selection_supported: false,
             fields: Config::fivetran_fields(),
             tests: vec![ConfigurationTest {
-                name: "select".to_string(),
-                label: "Tests selection".to_string(),
+                name: "connection".to_string(),
+                label: "Test connection".to_string(),
             }],
         }))
     }

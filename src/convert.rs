@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
 use anyhow::Context;
+#[cfg(test)]
+use convex::ExportContext;
 use convex::Value as ConvexValue;
 use prost_types::Timestamp;
 use serde_json::Value as JsonValue;
@@ -30,39 +32,40 @@ impl From<ConvexValue> for FivetranValue {
             ConvexValue::Array(_)
             | ConvexValue::Set(_)
             | ConvexValue::Map(_)
-            | ConvexValue::Object(_) => FivetranValue::Json(JsonValue::from(value).to_string()),
+            | ConvexValue::Object(_) => FivetranValue::Json(value.export().to_string()),
         }
     }
 }
 
+/// Converts a Fivetran value to the original Convex value, given its export
+/// context. This is only used in proptests to ensure that the conversion isn’t
+/// lossy.
 #[cfg(test)]
-impl TryFrom<FivetranValue> for ConvexValue {
-    type Error = anyhow::Error;
+fn roundtrip_fivetran_value(
+    value: FivetranValue,
+    export_context: ExportContext,
+) -> anyhow::Result<ConvexValue> {
+    Ok(match value {
+        FivetranValue::Null(_) => ConvexValue::Null,
+        FivetranValue::Bool(value) => ConvexValue::Boolean(value),
+        FivetranValue::Long(value) => ConvexValue::Int64(value),
+        FivetranValue::Double(value) => ConvexValue::Float64(value),
+        FivetranValue::Binary(value) => ConvexValue::Bytes(value),
+        FivetranValue::String(value) => ConvexValue::String(value),
+        FivetranValue::Json(value) => {
+            let json: JsonValue = serde_json::from_str(&value)?;
+            (json, &export_context).try_into()?
+        },
 
-    fn try_from(value: FivetranValue) -> anyhow::Result<ConvexValue> {
-        Ok(match value {
-            FivetranValue::Null(_) => ConvexValue::Null,
-            FivetranValue::Bool(value) => ConvexValue::Boolean(value),
-            FivetranValue::Long(value) => ConvexValue::Int64(value),
-            FivetranValue::Double(value) => ConvexValue::Float64(value),
-            FivetranValue::Binary(value) => ConvexValue::Bytes(value),
-            FivetranValue::String(value) => ConvexValue::String(value),
-            FivetranValue::Json(value) => {
-                // Assumes that the JSON representation supports roundtripping.
-                let json: JsonValue = serde_json::from_str(&value)?;
-                json.try_into()?
-            },
-
-            FivetranValue::Float(_)
-            | FivetranValue::Short(_)
-            | FivetranValue::Int(_)
-            | FivetranValue::UtcDatetime(_)
-            | FivetranValue::NaiveDate(_)
-            | FivetranValue::NaiveDatetime(_)
-            | FivetranValue::Decimal(_)
-            | FivetranValue::Xml(_) => anyhow::bail!("Unsupported Fivetran value: {:?}", value),
-        })
-    }
+        FivetranValue::Float(_)
+        | FivetranValue::Short(_)
+        | FivetranValue::Int(_)
+        | FivetranValue::UtcDatetime(_)
+        | FivetranValue::NaiveDate(_)
+        | FivetranValue::NaiveDatetime(_)
+        | FivetranValue::Decimal(_)
+        | FivetranValue::Xml(_) => anyhow::bail!("Unsupported Fivetran value: {:?}", value),
+    })
 }
 
 /// Converts a Convex document field to a Fivetran field.
@@ -118,7 +121,8 @@ mod tests {
         #[test]
         fn value_to_fivetran_roundtrips(value in any::<ConvexValue>()) {
             let fivetran_value: FivetranValue = value.clone().into();
-            assert_eq!(value, fivetran_value.try_into().unwrap());
+            let export_context = ExportContext::of(&value);
+            assert_eq!(value, roundtrip_fivetran_value(fivetran_value, export_context).unwrap());
         }
     }
 
