@@ -131,14 +131,20 @@ impl ConvexApi {
                 .json::<T>()
                 .await
                 .context("Failed to deserialize query result")?),
-            Ok(resp) => anyhow::bail!(
-                "Call to {endpoint} on {} returned an unsuccessful response: {resp:?}",
-                self.config.deploy_url
-            ),
-            Err(e) => anyhow::bail!(
-                "Call to {endpoint} on {} caused an error: {e:?}",
-                self.config.deploy_url
-            ),
+            Ok(resp) => {
+                if let Ok(text) = resp.text().await {
+                    anyhow::bail!(
+                        "Call to {endpoint} on {} returned an unsuccessful response: {text}",
+                        self.config.deploy_url
+                    )
+                } else {
+                    anyhow::bail!(
+                        "Call to {endpoint} on {} returned no response",
+                        self.config.deploy_url
+                    )
+                }
+            },
+            Err(e) => anyhow::bail!(e.to_string()),
         }
     }
 }
