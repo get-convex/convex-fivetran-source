@@ -93,6 +93,7 @@ impl ConvexConnector {
         // already set up for a particular Convex deployment.
         Ok(SchemaResponse {
             response: Some(schema_response::Response::WithoutSchema(tables)),
+            selection_not_supported: Some(true),
         })
     }
 }
