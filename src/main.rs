@@ -26,6 +26,7 @@ use clap::Parser;
 use config::AllowAllHosts;
 use connector::ConvexConnector;
 use fivetran_sdk::connector_server::ConnectorServer;
+use serde::Serialize;
 use tonic::transport::Server;
 
 /// The command-line arguments received by the connector.
@@ -51,11 +52,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         allow_all_hosts: AllowAllHosts(args.allow_all_hosts),
     };
 
-    println!("Starting the connector on {}", addr);
+    log(&format!("Starting the connector on {}", addr));
     Server::builder()
         .add_service(ConnectorServer::new(connector))
         .serve(addr)
         .await?;
 
     Ok(())
+}
+
+#[derive(Serialize)]
+struct LogLine<'a> {
+    level: &'a str,
+    message: &'a str,
+}
+pub fn log(message: &str) {
+    let result = serde_json::to_string(&LogLine {
+        level: "INFO",
+        message,
+    });
+    match result {
+        Ok(msg) => println!("{msg}"),
+        Err(e) => println!("Unable to serialize to json: {message}: {e}"),
+    }
 }

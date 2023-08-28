@@ -32,6 +32,7 @@ use crate::{
         UpdateResponse as FivetranUpdateResponse,
         ValueType,
     },
+    log,
 };
 
 /// The value currently used for the `version` field of [`State`].
@@ -254,6 +255,7 @@ async fn initial_sync(
         LogLevel::Info,
         format!("Starting an initial sync from {source}"),
     );
+    log(&format!("Starting an initial sync from {source}"));
 
     let mut snapshot: Option<i64> = snapshot;
     let mut cursor: Option<ListSnapshotCursor> = cursor;
@@ -286,6 +288,7 @@ async fn initial_sync(
     }));
 
     yield UpdateMessage::Log(LogLevel::Info, "Initial sync successful".to_string());
+    log(&format!("Initial sync from {source} successful."));
 }
 
 /// Synchronizes the changes that happened after an initial synchronization or
@@ -294,8 +297,9 @@ async fn initial_sync(
 async fn delta_sync(source: impl Source, cursor: DocumentDeltasCursor) {
     yield UpdateMessage::Log(
         LogLevel::Info,
-        format!("Starting to apply changes from {}", source),
+        format!("Starting to apply changes from {source}"),
     );
+    log(&format!("Delta sync from {source}."));
 
     let mut cursor = cursor;
     let mut has_more = true;
@@ -324,4 +328,7 @@ async fn delta_sync(source: impl Source, cursor: DocumentDeltasCursor) {
     }
 
     yield UpdateMessage::Log(LogLevel::Info, "Changes applied".to_string());
+    log(&format!(
+        "Delta sync changes applied from {source}. Final cursor {cursor}"
+    ));
 }
