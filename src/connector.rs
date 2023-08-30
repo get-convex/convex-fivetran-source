@@ -37,6 +37,7 @@ use crate::{
         UpdateResponse,
         UpdateResponse as FivetranUpdateResponse,
     },
+    log,
     sync::{
         sync,
         State,
@@ -55,6 +56,8 @@ impl ConvexConnector {
     async fn _schema(&self, request: Request<SchemaRequest>) -> anyhow::Result<SchemaResponse> {
         let config =
             Config::from_parameters(request.into_inner().configuration, self.allow_all_hosts)?;
+        log(&format!("schema request for {}", config.deploy_url));
+
         let source = ConvexApi { config };
 
         let columns = source.get_columns().await?;
@@ -106,6 +109,7 @@ impl Connector for ConvexConnector {
         &self,
         _: Request<ConfigurationFormRequest>,
     ) -> ConnectorResult<ConfigurationFormResponse> {
+        log("configuration form request");
         Ok(Response::new(ConfigurationFormResponse {
             schema_selection_supported: false,
             table_selection_supported: false,
@@ -118,6 +122,7 @@ impl Connector for ConvexConnector {
     }
 
     async fn test(&self, request: Request<TestRequest>) -> ConnectorResult<TestResponse> {
+        log(&format!("test request"));
         let config =
             match Config::from_parameters(request.into_inner().configuration, self.allow_all_hosts)
             {
@@ -128,6 +133,7 @@ impl Connector for ConvexConnector {
                     }));
                 },
             };
+        log(&format!("test request for {}", config.deploy_url));
         let source = ConvexApi { config };
 
         // Perform an API request to verify if the credentials work
@@ -142,6 +148,7 @@ impl Connector for ConvexConnector {
     }
 
     async fn schema(&self, request: Request<SchemaRequest>) -> ConnectorResult<SchemaResponse> {
+        log(&format!("schema request"));
         self._schema(request)
             .await
             .map(Response::new)
@@ -149,6 +156,7 @@ impl Connector for ConvexConnector {
     }
 
     async fn update(&self, request: Request<UpdateRequest>) -> ConnectorResult<Self::UpdateStream> {
+        log(&format!("update request"));
         let inner = request.into_inner();
         let config = match Config::from_parameters(inner.configuration, self.allow_all_hosts) {
             Ok(config) => config,
@@ -156,6 +164,7 @@ impl Connector for ConvexConnector {
                 return Err(Status::internal(error.to_string()));
             },
         };
+        log(&format!("update request for {}", config.deploy_url));
         let state: State = match serde_json::from_str(&inner.state_json.unwrap_or("{}".to_string()))
         {
             Ok(state) => state,
@@ -163,6 +172,10 @@ impl Connector for ConvexConnector {
                 return Err(Status::internal(error.to_string()));
             },
         };
+        log(&format!(
+            "update request for {} at checkpoint {:?}",
+            config.deploy_url, state.checkpoint
+        ));
 
         let source = ConvexApi { config };
 
