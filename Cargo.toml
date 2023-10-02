@@ -1,7 +1,7 @@
 [package]
 name = "convex_fivetran_source"
 description = "Fivetran source connector for Convex (convex.dev)"
-version = "0.1.0"
+version = "0.2.0"
 authors = [ "Convex, Inc. <team@convex.dev>" ]
 edition = "2021"
 resolver = "2"
@@ -13,7 +13,7 @@ homepage = "https://www.convex.dev/"
 anyhow = { version = "1" }
 async-trait = { version = "0.1" }
 clap = { features = [ "derive" ], version = "^4.1.8" }
-convex = { version = "=0.4.0", features = [ "native-tls-vendored" ] }
+convex = { version = "=0.5.0", features = [ "native-tls-vendored" ] }
 derive_more = { version = "0.99" }
 futures = { version = "0.3" }
 futures-async-stream = { version = "0.2" }
@@ -35,8 +35,8 @@ cfg-if = { version = "1.0" }
 tonic-build = { version = "0.9.0" }
 
 [dev-dependencies]
-convex = { version = "=0.4.0", features = [ "native-tls-vendored", "testing" ] }
+convex = { version = "=0.5.0", features = [ "native-tls-vendored", "testing" ] }
 proptest = { version = "1" }
-proptest-derive = { version = "0.3.0" }
+proptest-derive = { version = "0.4.0" }
 rand = { version = "0.8" }
 uuid = { version = "1.4" }

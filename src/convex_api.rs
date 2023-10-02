@@ -37,8 +37,9 @@ static CONVEX_CLIENT_HEADER_VALUE: LazyLock<HeaderValue> = LazyLock::new(|| {
 /// The APIs exposed by a Convex backend for streaming export.
 #[async_trait]
 pub trait Source: Display + Send {
-    /// See https://docs.convex.dev/http-api/#get-apijson_schemas
-    async fn json_schemas(&self) -> anyhow::Result<DatabaseSchema>;
+    /// An endpoint that confirms the Convex backend is accessible with
+    /// streaming export enabled
+    async fn test_streaming_export_connection(&self) -> anyhow::Result<()>;
 
     /// See https://docs.convex.dev/http-api/#get-apilist_snapshot
     async fn list_snapshot(
@@ -55,35 +56,8 @@ pub trait Source: Display + Send {
         table_name: Option<String>,
     ) -> anyhow::Result<DocumentDeltasResponse>;
 
-    /// Wrapper around `json_schema` returning only the table and field names.
-    async fn get_columns(&self) -> anyhow::Result<HashMap<TableName, Vec<FieldName>>> {
-        let schema = self.json_schemas().await?;
-
-        schema
-            .0
-            .into_iter()
-            .map(|(table_name, table_schema)| {
-                let system_columns = ["_id", "_creationTime"].into_iter().map(String::from);
-                let user_columns = match table_schema {
-                    Schema::Bool(_) => vec![], // Empty table
-                    Schema::Object(schema) => schema
-                        .object
-                        .context("Unexpected non-object validator for a document")?
-                        .properties
-                        .into_keys()
-                        .filter(|key| !key.starts_with('_'))
-                        .collect(),
-                };
-
-                let columns = system_columns
-                    .chain(user_columns.into_iter())
-                    .map(FieldName)
-                    .collect();
-
-                Ok((table_name, columns))
-            })
-            .try_collect()
-    }
+    /// Get a list of columns for each table on the Convex backend.
+    async fn get_columns(&self) -> anyhow::Result<HashMap<TableName, Vec<FieldName>>>;
 }
 
 /// Implementation of [`Source`] accessing a real Convex deployment over HTTP.
@@ -112,10 +86,7 @@ impl ConvexApi {
             .join(endpoint)
             .unwrap();
 
-        // We always append `format=convex_json`, which is used by all the endpoints.
-        url.query_pairs_mut()
-            .extend_pairs(non_null_parameters)
-            .append_pair("format", "convex_json");
+        url.query_pairs_mut().extend_pairs(non_null_parameters);
 
         match reqwest::Client::new()
             .get(url)
@@ -151,8 +122,9 @@ impl ConvexApi {
 
 #[async_trait]
 impl Source for ConvexApi {
-    async fn json_schemas(&self) -> anyhow::Result<DatabaseSchema> {
-        self.get("json_schemas", hashmap! {}).await
+    async fn test_streaming_export_connection(&self) -> anyhow::Result<()> {
+        self.get("test_streaming_export_connection", hashmap! {})
+            .await
     }
 
     async fn list_snapshot(
@@ -167,6 +139,7 @@ impl Source for ConvexApi {
                 "snapshot" => snapshot.map(|n| n.to_string()),
                 "cursor" => cursor.map(|n| n.to_string()),
                 "tableName" => table_name,
+                "format" => Some("convex_json".to_string()),
             },
         )
         .await
@@ -182,9 +155,33 @@ impl Source for ConvexApi {
             hashmap! {
                 "cursor" => Some(cursor.to_string()),
                 "tableName" => table_name,
+                "format" => Some("convex_json".to_string()),
             },
         )
         .await
+    }
+
+    async fn get_columns(&self) -> anyhow::Result<HashMap<TableName, Vec<FieldName>>> {
+        let tables_to_columns: HashMap<TableName, Vec<String>> =
+            self.get("get_tables_and_columns", hashmap! {}).await?;
+
+        tables_to_columns
+            .into_iter()
+            .map(|(table_name, all_columns)| {
+                let system_columns = ["_id", "_creationTime"].into_iter().map(String::from);
+                let user_columns: Vec<_> = all_columns
+                    .into_iter()
+                    .filter(|key| !key.starts_with('_'))
+                    .collect();
+
+                let columns = system_columns
+                    .chain(user_columns.into_iter())
+                    .map(FieldName)
+                    .collect();
+
+                Ok((table_name, columns))
+            })
+            .try_collect()
     }
 }
 

@@ -137,7 +137,7 @@ impl Connector for ConvexConnector {
         let source = ConvexApi { config };
 
         // Perform an API request to verify if the credentials work
-        match source.json_schemas().await {
+        match source.test_streaming_export_connection().await {
             Ok(_) => Ok(Response::new(TestResponse {
                 response: Some(test_response::Response::Success(true)),
             })),

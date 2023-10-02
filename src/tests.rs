@@ -14,7 +14,6 @@ use futures::{
 };
 use maplit::hashmap;
 use rand::Rng;
-use schemars::schema::Schema;
 use serde_json::{
     json,
     Value as JsonValue,
@@ -24,9 +23,9 @@ use value_type::Inner as FivetranValue;
 
 use crate::{
     convex_api::{
-        DatabaseSchema,
         DocumentDeltasCursor,
         DocumentDeltasResponse,
+        FieldName,
         ListSnapshotCursor,
         ListSnapshotResponse,
         SnapshotValue,
@@ -147,38 +146,24 @@ impl Display for FakeSource {
 
 #[async_trait]
 impl Source for FakeSource {
-    async fn json_schemas(&self) -> anyhow::Result<DatabaseSchema> {
-        Ok(DatabaseSchema(
-            self.tables
-                .iter()
-                .map(|(table_name, rows)| {
-                    let field_names = rows.iter().flat_map(|row| {
-                        row.keys()
-                    });
+    async fn test_streaming_export_connection(&self) -> anyhow::Result<()> {
+        Ok(())
+    }
 
-                    let schema: Schema = serde_json::from_value(json!({
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": vec!["_id", "_creationTime"],
-                        "$schema": "http://json-schema.org/draft-07/schema#",
-                        "properties": JsonValue::Object(field_names.map(|field_name| (field_name.clone(), match field_name.as_ref() {
-                            "_id" => json!({
-                                "$description": format!("Id({})", table_name),
-                                "type": "string",
-                            }),
-                            "_creationTime" => json!({
-                                "type": "number",
-                            }),
-                            _ => json!({
-                                // The specific type won’t be used by the connector
-                                "type": "string",
-                            }),
-                        })).collect()),
-                    })).unwrap();
-                    (TableName(table_name.clone()), schema)
-                })
-                .collect(),
-        ))
+    async fn get_columns(&self) -> anyhow::Result<HashMap<TableName, Vec<FieldName>>> {
+        let result = self
+            .tables
+            .iter()
+            .map(|(table_name, rows)| {
+                let field_names = rows
+                    .iter()
+                    .flat_map(|row| row.keys())
+                    .map(|f| FieldName(f.to_string()))
+                    .collect();
+                (TableName(table_name.to_string()), field_names)
+            })
+            .collect();
+        Ok(result)
     }
 
     async fn list_snapshot(
@@ -515,9 +500,9 @@ impl UnreliableSource {
 
 #[async_trait]
 impl Source for UnreliableSource {
-    async fn json_schemas(&self) -> anyhow::Result<DatabaseSchema> {
+    async fn test_streaming_export_connection(&self) -> anyhow::Result<()> {
         self.maybe_fail()?;
-        self.source.json_schemas().await
+        self.source.test_streaming_export_connection().await
     }
 
     async fn list_snapshot(
@@ -539,6 +524,11 @@ impl Source for UnreliableSource {
     ) -> anyhow::Result<DocumentDeltasResponse> {
         self.maybe_fail()?;
         self.source.document_deltas(cursor, table_name).await
+    }
+
+    async fn get_columns(&self) -> anyhow::Result<HashMap<TableName, Vec<FieldName>>> {
+        self.maybe_fail()?;
+        self.source.get_columns().await
     }
 }
 
