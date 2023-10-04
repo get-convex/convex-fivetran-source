@@ -24,8 +24,9 @@ menuPosition: 0
 - A Convex deployment. See [the Convex docs](https://docs.convex.dev/) to get
   started.
 - Your Convex deployment's URL (e.g., `https://jaded-raven-991.convex.cloud`)
-- Your Convex deployment's deploy key. Found on the Production Deployment
-  Settings page. ​
+- Your Convex deployment's deploy key. Found on the
+  [Production Deployment Settings](https://docs.convex.dev/dashboard/deployments/deployment-settings)
+  page. ​
 
 ---
 
@@ -35,7 +36,8 @@ menuPosition: 0
 
 ​
 
-> IMPORTANT: You must have a Convex Professional plan to use the Fivetran
+> IMPORTANT: You must have a
+> [Convex Professional plan](https://www.convex.dev/plans) to use the Fivetran
 > connector. ​
 
 ### <span class="step-item">Locate your Deployment Credentials</span>
@@ -64,7 +66,8 @@ Fivetran performs the following tests to ensure that we can connect to your
 Convex deployment.
 
 - Validating that your deployment credentials.
-- Ensuring you are on a Convex Professional account.
+- Ensuring you are on a
+  [Convex Professional account](https://www.convex.dev/plans).
 
 ---
 
