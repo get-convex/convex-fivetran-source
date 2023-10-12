@@ -1,5 +1,11 @@
 # Upcoming
 
+# 0.3.0
+
+- Support a `_convex_cursor` table with a single column `cursor` which holds the
+  `document_deltas` cursor representing the most recent sync.
+- Add documentation to docs/
+
 # 0.2.0
 
 - Bump `convex` dep to 0.5.0

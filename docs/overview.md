@@ -105,12 +105,20 @@ destination:
 | ---- | -------- | -------- | ------- | -------------- | -------- | ------------------------ | ------------------------------------------------- |
 | 1    | Main St. | New York | US      | (555) 123-5555 | 12345    | ["John", "Jane", "Adam"] | {"make" : "Honda", "year" : 2014, "type" : "AWD"} |
 
-### Fivetran-generated column
+### Fivetran-generated data
 
-Fivetran adds the following column to every table in your destination:
+Fivetran may add the following columns in your destination:
 
 - `_fivetran_synced` (UTC TIMESTAMP) indicates the time when Fivetran last
-  successfully synced the row.
+  successfully synced the row. It is added to every table.
+- `_fivetran_deleted` (BOOLEAN) indicates if the column was deleted in the
+  source.
 
 Fivetran adds this column to give you insight into the state of your data and
 the progress of your data syncs.
+
+The Convex source connector adds the following tables to your destination:
+
+- `_convex_cursor` - contains a single LONG column with the
+  [document_deltas end cursor](https://docs.convex.dev/http-api/#get-apidocument_deltas)
+  from the last sync.

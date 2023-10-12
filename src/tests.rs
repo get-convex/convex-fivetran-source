@@ -41,6 +41,8 @@ use crate::{
         sync,
         State,
         UpdateMessage,
+        CONVEX_CURSOR_TABLE,
+        CONVEX_CURSOR_TABLE_COLUMN,
     },
 };
 
@@ -135,6 +137,10 @@ impl FakeSource {
             deleted: true,
             fields: hashmap! { "_id".to_string() => json!(id) },
         })
+    }
+
+    fn end_cursor(&self) -> DocumentDeltasCursor {
+        DocumentDeltasCursor(self.changelog.len() as i64)
     }
 }
 
@@ -244,6 +250,7 @@ struct FakeDestination {
 struct FakeDestinationData {
     logs: Vec<(LogLevel, String)>,
     tables: HashMap<String, Vec<HashMap<String, FivetranValue>>>,
+    convex_cursor: Vec<DocumentDeltasCursor>,
 }
 
 impl FakeDestination {
@@ -279,6 +286,19 @@ impl FakeDestination {
                 } => {
                     if schema_name.is_some() {
                         panic!("Schemas not supported by the fake");
+                    }
+
+                    if table_name == CONVEX_CURSOR_TABLE {
+                        assert_eq!(row.len(), 1);
+                        assert_eq!(
+                            row.keys().collect::<Vec<_>>(),
+                            vec![CONVEX_CURSOR_TABLE_COLUMN]
+                        );
+                        let FivetranValue::Long(val) = row[CONVEX_CURSOR_TABLE_COLUMN] else {
+                            panic!("Convex Cursor must be a fivetran long");
+                        };
+                        self.current_data.convex_cursor.push(val.into());
+                        continue;
                     }
 
                     if !self.current_data.tables.contains_key(&table_name) {
@@ -327,6 +347,10 @@ async fn initial_sync_copies_documents_from_source_to_destination() -> anyhow::R
         .await?;
 
     assert!(destination.has_log("Initial sync successful"));
+    assert_eq!(
+        destination.checkpointed_data.convex_cursor,
+        vec![source.end_cursor()]
+    );
 
     assert_eq!(
         source.tables.len(),
@@ -422,6 +446,7 @@ async fn sync_after_adding_a_document() -> anyhow::Result<()> {
         .receive(sync(source.clone(), destination.latest_state()))
         .await?;
     let state = destination.latest_state();
+    let cursor1 = source.end_cursor();
 
     source.insert(
         "table1",
@@ -430,7 +455,13 @@ async fn sync_after_adding_a_document() -> anyhow::Result<()> {
         },
     );
     destination.receive(sync(source.clone(), state)).await?;
+    let cursor2 = source.end_cursor();
     assert_in_sync(source, &destination).await;
+
+    assert_eq!(
+        destination.checkpointed_data.convex_cursor,
+        vec![cursor1, cursor2],
+    );
 
     Ok(())
 }
@@ -545,6 +576,11 @@ async fn can_perform_an_initial_sync_from_an_unreliable_source() -> anyhow::Resu
         .await
         .is_err()
     {}
+
+    assert_eq!(
+        destination.checkpointed_data.convex_cursor,
+        vec![source.end_cursor()],
+    );
 
     assert_in_sync(source, &destination).await;
 

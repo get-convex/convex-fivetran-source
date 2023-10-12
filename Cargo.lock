@@ -1205,6 +1205,7 @@ dependencies = [
  "sqlite",
  "strum",
  "sync",
+ "tempfile",
  "thiserror",
  "tokio",
  "tokio-tungstenite",
@@ -1693,9 +1694,9 @@ checksum = "17febce684fd15d89027105661fec94afb475cb995fbc59d2865198446ba2eea"
 
 [[package]]
 name = "byteorder"
-version = "1.4.3"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
+checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "bytes"
@@ -2232,7 +2233,7 @@ dependencies = [
 
 [[package]]
 name = "convex_fivetran_source"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2277,6 +2278,7 @@ dependencies = [
  "anyhow",
  "base64 0.13.1",
  "derive_more",
+ "headers",
  "proptest",
  "proptest-derive",
  "rand 0.8.5",
@@ -3597,6 +3599,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a597f730845c4bd1d4ef892ae898bbcf867375d72f43e50f285e07e59c4f589"
 
 [[package]]
+name = "funrun"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "clap 4.2.1",
+ "cmd_util",
+ "common 0.1.0",
+ "futures",
+ "pb",
+ "runtime",
+ "sentry",
+ "tokio",
+ "tonic",
+ "tonic-health",
+ "tracing",
+ "url",
+]
+
+[[package]]
 name = "funty"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4684,6 +4706,7 @@ dependencies = [
  "common 0.1.0",
  "convex_sync_types",
  "errors",
+ "headers",
  "hex",
  "http",
  "metrics",
@@ -10067,6 +10090,7 @@ dependencies = [
  "futures",
  "imbl",
  "indexing",
+ "itertools 0.11.0",
  "metrics",
  "must-let",
  "parking_lot 0.12.1",

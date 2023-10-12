@@ -139,7 +139,7 @@ impl Source for ConvexApi {
                 "snapshot" => snapshot.map(|n| n.to_string()),
                 "cursor" => cursor.map(|n| n.to_string()),
                 "tableName" => table_name,
-                "format" => Some("convex_json".to_string()),
+                "format" => Some("convex_encoded_json".to_string()),
             },
         )
         .await
@@ -155,7 +155,7 @@ impl Source for ConvexApi {
             hashmap! {
                 "cursor" => Some(cursor.to_string()),
                 "tableName" => table_name,
-                "format" => Some("convex_json".to_string()),
+                "format" => Some("convex_encoded_json".to_string()),
             },
         )
         .await
