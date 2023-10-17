@@ -107,7 +107,7 @@ destination:
 
 ### Fivetran-generated data
 
-Fivetran may add the following columns in your destination:
+Fivetran adds the following column to every table in your destination:
 
 - `_fivetran_synced` (UTC TIMESTAMP) indicates the time when Fivetran last
   successfully synced the row. It is added to every table.
@@ -116,9 +116,3 @@ Fivetran may add the following columns in your destination:
 
 Fivetran adds this column to give you insight into the state of your data and
 the progress of your data syncs.
-
-The Convex source connector adds the following tables to your destination:
-
-- `_convex_cursor` - contains a single LONG column with the
-  [document_deltas end cursor](https://docs.convex.dev/http-api/#get-apidocument_deltas)
-  from the last sync.

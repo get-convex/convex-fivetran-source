@@ -41,8 +41,6 @@ use crate::{
     sync::{
         sync,
         State,
-        CONVEX_CURSOR_TABLE,
-        CONVEX_CURSOR_TABLE_COLUMN,
     },
 };
 
@@ -64,7 +62,7 @@ impl ConvexConnector {
 
         let columns = source.get_columns().await?;
 
-        let mut tables = TableList {
+        let tables = TableList {
             tables: columns
                 .into_iter()
                 .map(|(table_name, column_names)| Table {
@@ -91,15 +89,6 @@ impl ConvexConnector {
                 })
                 .collect(),
         };
-        tables.tables.push(Table {
-            name: CONVEX_CURSOR_TABLE.to_string(),
-            columns: vec![Column {
-                name: CONVEX_CURSOR_TABLE_COLUMN.to_string(),
-                r#type: DataType::Long as i32,
-                primary_key: true,
-                decimal: None,
-            }],
-        });
 
         // Here, `WithoutSchema` means that there is no hierarchical level above tables,
         // not that the data is unstructured. Fivetran uses the same meaning of “schema”

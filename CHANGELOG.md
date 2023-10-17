@@ -1,5 +1,11 @@
 # Upcoming
 
+# 0.4.0
+
+- Revert the `_convex_cursor` changes.
+- Few updates to loglines
+- docs updates
+
 # 0.3.0
 
 - Support a `_convex_cursor` table with a single column `cursor` which holds the

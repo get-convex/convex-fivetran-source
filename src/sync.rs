@@ -6,7 +6,6 @@ use futures::{
     StreamExt,
 };
 use futures_async_stream::try_stream;
-use maplit::hashmap;
 use serde::{
     Deserialize,
     Serialize,
@@ -38,11 +37,6 @@ use crate::{
 
 /// The value currently used for the `version` field of [`State`].
 const CURSOR_VERSION: i64 = 1;
-
-/// The table in which the connector syncs the end-cursor of the sync.
-pub const CONVEX_CURSOR_TABLE: &str = "_convex_cursor";
-/// The column name to the CONVEX_CURSOR_TABLE table
-pub const CONVEX_CURSOR_TABLE_COLUMN: &str = "cursor";
 
 /// Stores the current synchronization state of a destination. A state will be
 /// send (as JSON) to Fivetran every time we perform a checkpoint, and will be
@@ -292,15 +286,6 @@ async fn initial_sync(
     }
 
     let cursor = DocumentDeltasCursor::from(snapshot.context("Missing snapshot from response")?);
-    yield UpdateMessage::Update {
-        schema_name: None,
-        table_name: CONVEX_CURSOR_TABLE.to_string(),
-        op_type: OpType::Upsert,
-        row: hashmap! {
-            CONVEX_CURSOR_TABLE_COLUMN.to_string() => FivetranValue::Long(cursor.0),
-        },
-    };
-
     yield UpdateMessage::Checkpoint(State::create(Checkpoint::DeltaUpdates { cursor }));
 
     yield UpdateMessage::Log(LogLevel::Info, "Initial sync successful".to_string());
@@ -339,15 +324,6 @@ async fn delta_sync(source: impl Source, cursor: DocumentDeltasCursor) {
 
         cursor = DocumentDeltasCursor::from(response.cursor);
         has_more = response.has_more;
-
-        yield UpdateMessage::Update {
-            schema_name: None,
-            table_name: CONVEX_CURSOR_TABLE.to_string(),
-            op_type: OpType::Upsert,
-            row: hashmap! {
-                CONVEX_CURSOR_TABLE_COLUMN.to_string() => FivetranValue::Long(cursor.0),
-            },
-        };
 
         // It is safe to take a snapshot here, because document_deltas
         // guarantees that the state given by one call is consistent.
