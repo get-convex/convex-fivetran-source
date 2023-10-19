@@ -1,22 +1,20 @@
 ---
 name: Convex
-title: Convex Source Connector for Fivetran
+title: Convex connector for Fivetran
 description:
   Documentation and setup guide for the Convex source connector for Fivetran.
 ---
 
 # Convex {% availabilityBadge connector="convex" /%}
 
-[Convex](https://convex.dev) is the fullstack TypeScript development platform.
-Replace your database, server functions and glue code.
+[Convex](https://convex.dev) is a full-stack TypeScript development platform.
+Replace your database, server functions, and glue code.
 
 ---
 
 ## Setup guide
 
-This overview will give you a general idea of the capabilities of the Convex
-source connector. For specific instructions on how to set it up, see the
-[setup guide](/docs/databases/convex/setup-guide).
+Follow our [step-by-step Convex setup guide](/docs/databases/convex/setup-guide) to connect your Convex database with Fivetran.
 
 ---
 
@@ -32,7 +30,7 @@ configure the frequency of these updates.
 
 ## Configuration
 
-You will need your Deployment URL and Deploy Key in order to configure the
+You will need your deployment URL and deploy key in order to configure the
 Convex Source Connector for Fivetran. You can find both on your project's
 [Production Deployment Settings page](https://docs.convex.dev/dashboard/deployments/deployment-settings).
 
@@ -65,17 +63,17 @@ types into Fivetran-supported types:
 | Array       | JSON          | True               |
 | Object      | JSON          | True               |
 
-> NOTE: The system field `_creationTime` in each document is special cased to
+> NOTE: The `_creationTime` system field  in each document is special-cased to
 > convert into a UTC_DATETIME, despite being stored as a Float64 inside of
 > Convex.
 
-> NOTE: Nested types inside of Object and Array are serialized as JSON using the
-> export format documented [here](https://docs.convex.dev/database/types)
+> NOTE: Nested types inside Object and Array are serialized as JSON using the
+> [JSON format for export](https://docs.convex.dev/database/types).
 
 ### Nested data
 
-Convex documents are represented as JSON using the conversions listed
-[here](https://docs.convex.dev/database/types). If the first-level field is a
+Convex documents are represented as JSON [by using conversions](https://docs.convex.dev/database/types).
+If the first-level field is a
 simple data type, the source connector will map it to its own type. If it's a
 complex nested data type such as an array or JSON data, it maps to a JSON type
 without unpacking. The connector does not automatically unpack nested JSON
@@ -83,7 +81,7 @@ objects to separate tables in the destination. Any nested JSON objects are
 preserved as is in the destination so that you can use JSON processing
 functions.
 
-For example, the following Convex Document...
+For example, the following Convex document:
 
 ```json
 {"street"  : "Main St."
@@ -98,7 +96,7 @@ For example, the following Convex Document...
 }
 ```
 
-...is converted to the following table when the connector loads it into your
+is converted to the following table when the connector loads it into your
 destination:
 
 | \_id | street   | city     | country | phone          | zip code | people                   | car                                               |
@@ -114,5 +112,5 @@ Fivetran adds the following column to every table in your destination:
 - `_fivetran_deleted` (BOOLEAN) indicates if the column was deleted in the
   source.
 
-Fivetran adds this column to give you insight into the state of your data and
+Fivetran adds these columns to give you insight into the state of your data and
 the progress of your data syncs.

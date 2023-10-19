@@ -1,6 +1,6 @@
 ---
 name: Convex Setup Guide
-title: Convex Source Connector Setup Guide
+title: Convex Connector Setup Guide
 description:
   Read step-by-step instructions on how to connect your Convex deployment with
   your destination using Fivetran connectors.
@@ -9,7 +9,7 @@ menuPosition: 0
 
 ​
 
-# Convex Setup Guide {% availabilityBadge connector="cosmos" /%}
+# Convex Setup Guide {% availabilityBadge connector="convex" /%}
 
 ​ Follow our setup guide to connect Convex to Fivetran. ​
 
@@ -19,12 +19,13 @@ menuPosition: 0
 
 ## Prerequisites
 
-​ To connect your Convex deployment to Fivetran, you will need:
+​To connect your Convex deployment to Fivetran, you need the following:
+ - A Convex account on a [Professional plan](https://www.convex.dev/plans)
 
-- A Convex deployment. See [the Convex docs](https://docs.convex.dev/) to get
+- A Convex deployment. See [Convex's documentation](https://docs.convex.dev/) to get
   started.
 - Your Convex deployment's URL (e.g., `https://jaded-raven-991.convex.cloud`)
-- Your Convex deployment's deploy key. Found on the
+- Your Convex deployment's deploy key. You can find both the deployment URL and deploy key on the 
   [Production Deployment Settings](https://docs.convex.dev/dashboard/deployments/deployment-settings)
   page. ​
 
@@ -37,16 +38,16 @@ menuPosition: 0
 ​
 
 > IMPORTANT: You must have a
-> [Convex Professional plan](https://www.convex.dev/plans) to use the Fivetran
+> [Convex Professional plan](https://www.convex.dev/plans) to be able use the Convex
 > connector. ​
 
 ### <span class="step-item">Locate your Deployment Credentials</span>
 
 1. Navigate to your deployment on the
-   [Convex Dashboard](https://dashboard.convex.dev/) ​
+   [Convex Dashboard](https://dashboard.convex.dev/).​
 2. Navigate to the
    [Production Deployment Settings](https://docs.convex.dev/dashboard/deployments/deployment-settings).
-3. Locate your Deployment URL and Deploy Key. ​
+3. Find your deployment URL and deploy key and make a note of them. You will need them to configure Fivetran.
 
 ### <span class="step-item">Finish Fivetran configuration</span>
 
@@ -67,7 +68,7 @@ Convex deployment.
 
 - Validating that your deployment credentials.
 - Ensuring you are on a
-  [Convex Professional account](https://www.convex.dev/plans).
+  [Convex Professional plan](https://www.convex.dev/plans).
 
 ---
 
