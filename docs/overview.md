@@ -14,7 +14,8 @@ Replace your database, server functions, and glue code.
 
 ## Setup guide
 
-Follow our [step-by-step Convex setup guide](/docs/databases/convex/setup-guide) to connect your Convex database with Fivetran.
+Follow our [step-by-step Convex setup guide](/docs/databases/convex/setup-guide)
+to connect your Convex database with Fivetran.
 
 ---
 
@@ -63,7 +64,7 @@ types into Fivetran-supported types:
 | Array       | JSON          | True               |
 | Object      | JSON          | True               |
 
-> NOTE: The `_creationTime` system field  in each document is special-cased to
+> NOTE: The `_creationTime` system field in each document is special-cased to
 > convert into a UTC_DATETIME, despite being stored as a Float64 inside of
 > Convex.
 
@@ -72,14 +73,14 @@ types into Fivetran-supported types:
 
 ### Nested data
 
-Convex documents are represented as JSON [by using conversions](https://docs.convex.dev/database/types).
-If the first-level field is a
-simple data type, the source connector will map it to its own type. If it's a
-complex nested data type such as an array or JSON data, it maps to a JSON type
-without unpacking. The connector does not automatically unpack nested JSON
-objects to separate tables in the destination. Any nested JSON objects are
-preserved as is in the destination so that you can use JSON processing
-functions.
+Convex documents are represented as JSON
+[by using conversions](https://docs.convex.dev/database/types). If the
+first-level field is a simple data type, the source connector will map it to its
+own type. If it's a complex nested data type such as an array or JSON data, it
+maps to a JSON type without unpacking. The connector does not automatically
+unpack nested JSON objects to separate tables in the destination. Any nested
+JSON objects are preserved as is in the destination so that you can use JSON
+processing functions.
 
 For example, the following Convex document:
 

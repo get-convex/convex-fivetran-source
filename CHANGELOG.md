@@ -1,5 +1,11 @@
 # Upcoming
 
+# 0.5.0
+
+- Emit a TRUNCATE op before the first write to any given table (in case it's a
+  resync)
+- Skip emitting an initial sync snapshot before the first page.
+
 # 0.4.0
 
 - Revert the `_convex_cursor` changes.

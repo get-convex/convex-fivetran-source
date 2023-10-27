@@ -60,7 +60,7 @@ impl ConvexConnector {
 
         let source = ConvexApi { config };
 
-        let columns = source.get_columns().await?;
+        let columns = source.get_tables_and_columns().await?;
 
         let tables = TableList {
             tables: columns
@@ -165,16 +165,14 @@ impl Connector for ConvexConnector {
             },
         };
         log(&format!("update request for {}", config.deploy_url));
-        let state: State = match serde_json::from_str(&inner.state_json.unwrap_or("{}".to_string()))
-        {
-            Ok(state) => state,
-            Err(error) => {
-                return Err(Status::internal(error.to_string()));
-            },
-        };
+
+        let state = deserialize_state_json(inner.state_json.as_deref().unwrap_or("{}"))
+            .map_err(|error| Status::internal(error.to_string()))?;
+
         log(&format!(
             "update request for {} at checkpoint {:?}",
-            config.deploy_url, state.checkpoint
+            config.deploy_url,
+            state.as_ref().map(|s| &s.checkpoint)
         ));
 
         let source = ConvexApi { config };
@@ -185,5 +183,42 @@ impl Connector for ConvexConnector {
                 .map_err(|error| Status::internal(error.to_string()))
                 .boxed(),
         ))
+    }
+}
+
+fn deserialize_state_json(state_json: &str) -> anyhow::Result<Option<State>> {
+    // Deserialize to a serde_json::Value first
+    let state: serde_json::Value = serde_json::from_str(state_json)?;
+    // Special case {} - which means we're initializing from fresh state
+    let state = if state == serde_json::json!({}) {
+        None
+    } else {
+        Some(serde_json::from_value(state)?)
+    };
+    Ok(state)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::deserialize_state_json;
+    use crate::sync::{
+        Checkpoint,
+        State,
+    };
+
+    #[test]
+    fn test_deserialize_state_json() -> anyhow::Result<()> {
+        assert_eq!(deserialize_state_json("{}")?, None);
+        assert!(deserialize_state_json("{'invalid':'things'}").is_err());
+        assert_eq!(
+            deserialize_state_json(
+                "{ \"version\": 1, \"checkpoint\": { \"DeltaUpdates\": { \"cursor\": 42 } } }"
+            )?,
+            Some(State::create(
+                Checkpoint::DeltaUpdates { cursor: 42.into() },
+                None,
+            ))
+        );
+        Ok(())
     }
 }

@@ -57,7 +57,7 @@ pub trait Source: Display + Send {
     ) -> anyhow::Result<DocumentDeltasResponse>;
 
     /// Get a list of columns for each table on the Convex backend.
-    async fn get_columns(&self) -> anyhow::Result<HashMap<TableName, Vec<FieldName>>>;
+    async fn get_tables_and_columns(&self) -> anyhow::Result<HashMap<TableName, Vec<FieldName>>>;
 }
 
 /// Implementation of [`Source`] accessing a real Convex deployment over HTTP.
@@ -161,7 +161,7 @@ impl Source for ConvexApi {
         .await
     }
 
-    async fn get_columns(&self) -> anyhow::Result<HashMap<TableName, Vec<FieldName>>> {
+    async fn get_tables_and_columns(&self) -> anyhow::Result<HashMap<TableName, Vec<FieldName>>> {
         let tables_to_columns: HashMap<TableName, Vec<String>> =
             self.get("get_tables_and_columns", hashmap! {}).await?;
 

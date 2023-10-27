@@ -150,7 +150,7 @@ impl Source for FakeSource {
         Ok(())
     }
 
-    async fn get_columns(&self) -> anyhow::Result<HashMap<TableName, Vec<FieldName>>> {
+    async fn get_tables_and_columns(&self) -> anyhow::Result<HashMap<TableName, Vec<FieldName>>> {
         let result = self
             .tables
             .iter()
@@ -237,7 +237,7 @@ impl Source for FakeSource {
 struct FakeDestination {
     current_data: FakeDestinationData,
     checkpointed_data: FakeDestinationData,
-    state: State,
+    state: Option<State>,
 }
 
 #[derive(Default, Debug, PartialEq, Clone)]
@@ -254,7 +254,7 @@ impl FakeDestination {
             .any(|(_, message)| message.contains(substring))
     }
 
-    fn latest_state(&self) -> State {
+    fn latest_state(&self) -> Option<State> {
         self.state.clone()
     }
 
@@ -280,9 +280,13 @@ impl FakeDestination {
                     if schema_name.is_some() {
                         panic!("Schemas not supported by the fake");
                     }
-
                     if !self.current_data.tables.contains_key(&table_name) {
                         self.current_data.tables.insert(table_name.clone(), vec![]);
+                    }
+
+                    if op_type == OpType::Truncate {
+                        self.current_data.tables.remove(&table_name);
+                        continue;
                     }
 
                     let table = self
@@ -308,7 +312,7 @@ impl FakeDestination {
                 },
                 UpdateMessage::Checkpoint(state) => {
                     self.checkpointed_data = self.current_data.clone();
-                    self.state = state;
+                    self.state = Some(state);
                 },
             }
         }
@@ -476,6 +480,22 @@ async fn sync_after_deleting_a_document() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[tokio::test]
+async fn resync_after_sync_and_delete() -> anyhow::Result<()> {
+    let mut source = FakeSource::seeded();
+    let mut destination = FakeDestination::default();
+
+    destination.receive(sync(source.clone(), None)).await?;
+    source.delete("table1", 8);
+
+    // The sync + delete + resync tests to ensure that the connector
+    // correctly truncates the destination before a resync.
+    destination.receive(sync(source.clone(), None)).await?;
+    assert_in_sync(source, &destination).await;
+
+    Ok(())
+}
+
 /// Wrapper around a source that fails half of its calls.
 #[derive(From)]
 struct UnreliableSource {
@@ -526,9 +546,9 @@ impl Source for UnreliableSource {
         self.source.document_deltas(cursor, table_name).await
     }
 
-    async fn get_columns(&self) -> anyhow::Result<HashMap<TableName, Vec<FieldName>>> {
+    async fn get_tables_and_columns(&self) -> anyhow::Result<HashMap<TableName, Vec<FieldName>>> {
         self.maybe_fail()?;
-        self.source.get_columns().await
+        self.source.get_tables_and_columns().await
     }
 }
 

@@ -20,12 +20,14 @@ menuPosition: 0
 ## Prerequisites
 
 ​To connect your Convex deployment to Fivetran, you need the following:
- - A Convex account on a [Professional plan](https://www.convex.dev/plans)
 
-- A Convex deployment. See [Convex's documentation](https://docs.convex.dev/) to get
-  started.
+- A Convex account on a [Professional plan](https://www.convex.dev/plans)
+
+- A Convex deployment. See [Convex's documentation](https://docs.convex.dev/) to
+  get started.
 - Your Convex deployment's URL (e.g., `https://jaded-raven-991.convex.cloud`)
-- Your Convex deployment's deploy key. You can find both the deployment URL and deploy key on the 
+- Your Convex deployment's deploy key. You can find both the deployment URL and
+  deploy key on the
   [Production Deployment Settings](https://docs.convex.dev/dashboard/deployments/deployment-settings)
   page. ​
 
@@ -38,8 +40,8 @@ menuPosition: 0
 ​
 
 > IMPORTANT: You must have a
-> [Convex Professional plan](https://www.convex.dev/plans) to be able use the Convex
-> connector. ​
+> [Convex Professional plan](https://www.convex.dev/plans) to be able use the
+> Convex connector. ​
 
 ### <span class="step-item">Locate your Deployment Credentials</span>
 
@@ -47,7 +49,8 @@ menuPosition: 0
    [Convex Dashboard](https://dashboard.convex.dev/).​
 2. Navigate to the
    [Production Deployment Settings](https://docs.convex.dev/dashboard/deployments/deployment-settings).
-3. Find your deployment URL and deploy key and make a note of them. You will need them to configure Fivetran.
+3. Find your deployment URL and deploy key and make a note of them. You will
+   need them to configure Fivetran.
 
 ### <span class="step-item">Finish Fivetran configuration</span>
 
