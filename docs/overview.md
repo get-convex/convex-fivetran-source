@@ -1,11 +1,10 @@
 ---
 name: Convex
 title: Convex connector for Fivetran
-description:
-  Documentation and setup guide for the Convex source connector for Fivetran.
+description: Documentation and setup guide for the Convex connector for Fivetran
 ---
 
-# Convex {% availabilityBadge connector="convex" /%}
+# Convex {% typeBadge connector="convex" /%} {% availabilityBadge connector="convex" /%}
 
 [Convex](https://convex.dev) is a full-stack TypeScript development platform.
 Replace your database, server functions, and glue code.
@@ -14,43 +13,31 @@ Replace your database, server functions, and glue code.
 
 ## Setup guide
 
-Follow our [step-by-step Convex setup guide](/docs/databases/convex/setup-guide)
-to connect your Convex database with Fivetran.
+Follow our [step-by-step Convex setup guide](/docs/databases/convex/setup-guide) to connect your Convex database with Fivetran.
 
 ---
 
 ## Sync overview
 
-Once Fivetran is connected to your Convex deployment, the connector fetches an
-initial consistent snapshot of all data from your Convex database. Once the
-initial sync is complete, the connector uses CDC to efficiently incrementally
-sync updates at a newer consistent view of your Convex deployment. You can
-configure the frequency of these updates.
+Once Fivetran is connected to your Convex deployment, the connector fetches an initial consistent snapshot of all data from your Convex database. Once the initial sync is complete, the connector uses CDC to efficiently incrementally sync updates at a newer consistent view of your Convex deployment. You can configure the frequency of these updates.
 
 ---
 
 ## Configuration
 
-You will need your deployment URL and deploy key in order to configure the
-Convex Source Connector for Fivetran. You can find both on your project's
-[Production Deployment Settings page](https://docs.convex.dev/dashboard/deployments/deployment-settings).
+You will need your deployment URL and deploy key in order to configure the Convex Connector for Fivetran. You can find both on your project's [Production Deployment Settings page](https://docs.convex.dev/dashboard/deployments/deployment-settings).
 
 ---
 
 ## Schema information
 
-Fivetran tries to replicate the database and columns from your configured Convex
-deployment to your destination according to Fivetran's
-[standard database update strategies](/docs/databases#transformationandmappingoverview).
+Fivetran tries to replicate the database and columns from your configured Convex deployment to your destination according to Fivetran's [standard database update strategies](/docs/databases#transformationandmappingoverview).
 
 ### Type transformations and mapping
 
-As the connector extracts your data, it matches
-[Convex data types](https://docs.convex.dev/database/types) to types that
-Fivetran supports.
+As the connector extracts your data, it matches [Convex data types](https://docs.convex.dev/database/types) to types that Fivetran supports.
 
-The following table illustrates how the connector transforms your Convex data
-types into Fivetran-supported types:
+The following table illustrates how the connector transforms your Convex data types into Fivetran-supported types:
 
 | Convex Type | Fivetran Type | Fivetran Supported |
 | ----------- | ------------- | ------------------ |
@@ -64,23 +51,13 @@ types into Fivetran-supported types:
 | Array       | JSON          | True               |
 | Object      | JSON          | True               |
 
-> NOTE: The `_creationTime` system field in each document is special-cased to
-> convert into a UTC_DATETIME, despite being stored as a Float64 inside of
-> Convex.
+> NOTE: The `_creationTime` system field  in each document is special-cased to convert into a UTC_DATETIME, despite being stored as a Float64 inside of Convex.
 
-> NOTE: Nested types inside Object and Array are serialized as JSON using the
-> [JSON format for export](https://docs.convex.dev/database/types).
+> NOTE: Nested types inside Object and Array are serialized as JSON using the [JSON format for export](https://docs.convex.dev/database/types).
 
 ### Nested data
 
-Convex documents are represented as JSON
-[by using conversions](https://docs.convex.dev/database/types). If the
-first-level field is a simple data type, the source connector will map it to its
-own type. If it's a complex nested data type such as an array or JSON data, it
-maps to a JSON type without unpacking. The connector does not automatically
-unpack nested JSON objects to separate tables in the destination. Any nested
-JSON objects are preserved as is in the destination so that you can use JSON
-processing functions.
+Convex documents are represented as JSON [by using conversions](https://docs.convex.dev/database/types). If the first-level field is a simple data type, the connector will map it to its own type. If it's a complex nested data type such as an array or JSON data, it maps to a JSON type without unpacking. The connector does not automatically unpack nested JSON objects to separate tables in the destination. Any nested JSON objects are preserved as is in the destination so that you can use JSON processing functions.
 
 For example, the following Convex document:
 
@@ -97,8 +74,7 @@ For example, the following Convex document:
 }
 ```
 
-is converted to the following table when the connector loads it into your
-destination:
+is converted to the following table when the connector loads it into your destination:
 
 | \_id | street   | city     | country | phone          | zip code | people                   | car                                               |
 | ---- | -------- | -------- | ------- | -------------- | -------- | ------------------------ | ------------------------------------------------- |
@@ -108,10 +84,7 @@ destination:
 
 Fivetran adds the following column to every table in your destination:
 
-- `_fivetran_synced` (UTC TIMESTAMP) indicates the time when Fivetran last
-  successfully synced the row. It is added to every table.
-- `_fivetran_deleted` (BOOLEAN) indicates if the column was deleted in the
-  source.
+- `_fivetran_synced` (UTC TIMESTAMP) indicates the time when Fivetran last successfully synced the row. It is added to every table.
+- `_fivetran_deleted` (BOOLEAN) indicates if the column was deleted in the source.
 
-Fivetran adds these columns to give you insight into the state of your data and
-the progress of your data syncs.
+Fivetran adds these columns to give you insight into the state of your data and the progress of your data syncs.
