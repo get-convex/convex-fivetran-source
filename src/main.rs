@@ -1,6 +1,6 @@
-#![feature(generators)]
+#![feature(coroutines)]
 #![feature(iterator_try_collect)]
-#![feature(once_cell)]
+#![feature(lazy_cell)]
 
 mod config;
 mod connector;
@@ -27,7 +27,10 @@ use config::AllowAllHosts;
 use connector::ConvexConnector;
 use fivetran_sdk::connector_server::ConnectorServer;
 use serde::Serialize;
-use tonic::transport::Server;
+use tonic::{
+    codec::CompressionEncoding,
+    transport::Server,
+};
 
 /// The command-line arguments received by the connector.
 #[derive(Parser, Debug)]
@@ -54,7 +57,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     log(&format!("Starting the connector on {}", addr));
     Server::builder()
-        .add_service(ConnectorServer::new(connector))
+        .add_service(
+            ConnectorServer::new(connector)
+                .accept_compressed(CompressionEncoding::Gzip)
+                .send_compressed(CompressionEncoding::Gzip),
+        )
         .serve(addr)
         .await?;
 

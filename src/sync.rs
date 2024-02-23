@@ -89,74 +89,6 @@ pub enum Checkpoint {
     DeltaUpdates { cursor: DocumentDeltasCursor },
 }
 
-#[cfg(test)]
-mod state_serialization_tests {
-    use proptest::prelude::*;
-
-    use crate::sync::{
-        Checkpoint,
-        State,
-    };
-
-    proptest! {
-        #![proptest_config(ProptestConfig {
-            failure_persistence: None, ..ProptestConfig::default()
-        })]
-        #[test]
-        fn state_json_roundtrips(value in any::<State>()) {
-            let json = serde_json::to_string(&value).unwrap();
-            prop_assert_eq!(value, serde_json::from_str(&json).unwrap());
-        }
-    }
-
-    #[test]
-    fn refuses_unknown_state_object() {
-        assert!(serde_json::from_str::<State>("{\"a\": \"b\"}").is_err());
-    }
-
-    #[test]
-    fn refuses_unknown_checkpoint_object() {
-        assert!(serde_json::from_str::<State>(
-            "{ \"version\": 1, \"snapshot\": { \"NewState\": { \"cursor\": 42 } } }"
-        )
-        .is_err());
-    }
-
-    #[test]
-    fn deserializes_v1_initial_sync_checkpoints() {
-        assert_eq!(
-            serde_json::from_str::<State>(
-                "{ \"version\": 1, \"checkpoint\": { \"InitialSync\": { \"snapshot\": 42, \
-                 \"cursor\": \"abc123\" } } }"
-            )
-            .unwrap(),
-            State {
-                version: 1,
-                checkpoint: Checkpoint::InitialSync {
-                    snapshot: 42,
-                    cursor: String::from("abc123").into(),
-                },
-                tables_seen: None,
-            },
-        );
-    }
-
-    #[test]
-    fn deserializes_v1_delta_update_checkpoints() {
-        assert_eq!(
-            serde_json::from_str::<State>(
-                "{ \"version\": 1, \"checkpoint\": { \"DeltaUpdates\": { \"cursor\": 42 } } }"
-            )
-            .unwrap(),
-            State {
-                version: 1,
-                checkpoint: Checkpoint::DeltaUpdates { cursor: 42.into() },
-                tables_seen: None,
-            },
-        );
-    }
-}
-
 /// A simplification of the messages sent to Fivetran in the `update` endpoint.
 pub enum UpdateMessage {
     Log(LogLevel, String),
@@ -371,4 +303,72 @@ async fn delta_sync(
     log(&format!(
         "Delta sync changes applied from {source}. Final cursor {cursor}"
     ));
+}
+
+#[cfg(test)]
+mod state_serialization_tests {
+    use proptest::prelude::*;
+
+    use crate::sync::{
+        Checkpoint,
+        State,
+    };
+
+    proptest! {
+        #![proptest_config(ProptestConfig {
+            failure_persistence: None, ..ProptestConfig::default()
+        })]
+        #[test]
+        fn state_json_roundtrips(value in any::<State>()) {
+            let json = serde_json::to_string(&value).unwrap();
+            prop_assert_eq!(value, serde_json::from_str(&json).unwrap());
+        }
+    }
+
+    #[test]
+    fn refuses_unknown_state_object() {
+        assert!(serde_json::from_str::<State>("{\"a\": \"b\"}").is_err());
+    }
+
+    #[test]
+    fn refuses_unknown_checkpoint_object() {
+        assert!(serde_json::from_str::<State>(
+            "{ \"version\": 1, \"snapshot\": { \"NewState\": { \"cursor\": 42 } } }"
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn deserializes_v1_initial_sync_checkpoints() {
+        assert_eq!(
+            serde_json::from_str::<State>(
+                "{ \"version\": 1, \"checkpoint\": { \"InitialSync\": { \"snapshot\": 42, \
+                 \"cursor\": \"abc123\" } } }"
+            )
+            .unwrap(),
+            State {
+                version: 1,
+                checkpoint: Checkpoint::InitialSync {
+                    snapshot: 42,
+                    cursor: String::from("abc123").into(),
+                },
+                tables_seen: None,
+            },
+        );
+    }
+
+    #[test]
+    fn deserializes_v1_delta_update_checkpoints() {
+        assert_eq!(
+            serde_json::from_str::<State>(
+                "{ \"version\": 1, \"checkpoint\": { \"DeltaUpdates\": { \"cursor\": 42 } } }"
+            )
+            .unwrap(),
+            State {
+                version: 1,
+                checkpoint: Checkpoint::DeltaUpdates { cursor: 42.into() },
+                tables_seen: None,
+            },
+        );
+    }
 }

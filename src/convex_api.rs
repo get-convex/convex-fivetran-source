@@ -174,10 +174,7 @@ impl Source for ConvexApi {
                     .filter(|key| !key.starts_with('_'))
                     .collect();
 
-                let columns = system_columns
-                    .chain(user_columns.into_iter())
-                    .map(FieldName)
-                    .collect();
+                let columns = system_columns.chain(user_columns).map(FieldName).collect();
 
                 Ok((table_name, columns))
             })

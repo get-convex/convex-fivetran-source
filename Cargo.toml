@@ -1,7 +1,7 @@
 [package]
 name = "convex_fivetran_source"
 description = "Fivetran source connector for Convex (convex.dev)"
-version = "0.5.0"
+version = "0.6.0"
 authors = [ "Convex, Inc. <team@convex.dev>" ]
 edition = "2021"
 resolver = "2"
@@ -13,10 +13,10 @@ homepage = "https://www.convex.dev/"
 anyhow = { version = "1" }
 async-trait = { version = "0.1" }
 clap = { features = [ "derive" ], version = "^4.1.8" }
-convex = { version = "=0.5.0", features = [ "native-tls-vendored" ] }
+convex = { version = "=0.6.0", features = [ "native-tls-vendored" ] }
 derive_more = { version = "0.99" }
 futures = { version = "0.3" }
-futures-async-stream = { version = "0.2" }
+futures-async-stream = { version = "0.2.9" }
 maplit = { version = "1" }
 prost = { version = "0.12" }
 prost-types = { version = "0.12" }
@@ -24,9 +24,7 @@ reqwest = { features = [ "json", "native-tls-vendored" ], version = "0.11" }
 schemars = { version = "0.8" }
 serde = { features = [ "derive" ], version = "1" }
 serde_json = { version = "1" }
-thiserror = { version = "1" }
 tokio = { version = "1" }
-tokio-stream = { version = "^0.1.8" }
 tonic = { version = "0.10.0" }
 url = { version = "2" }
 
@@ -35,8 +33,8 @@ cfg-if = { version = "1.0" }
 tonic-build = { version = "0.10.0" }
 
 [dev-dependencies]
-convex = { version = "=0.5.0", features = [ "native-tls-vendored", "testing" ] }
+convex = { version = "=0.6.0", features = [ "testing" ] }
 proptest = { version = "1" }
 proptest-derive = { version = "0.4.0" }
 rand = { version = "0.8" }
-uuid = { version = "1.4" }
+uuid = { version = "1.6" }

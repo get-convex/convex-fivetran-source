@@ -28,10 +28,9 @@ impl From<ConvexValue> for FivetranValue {
             ConvexValue::Boolean(value) => FivetranValue::Bool(value),
             ConvexValue::String(value) => FivetranValue::String(value),
             ConvexValue::Bytes(value) => FivetranValue::Binary(value),
-            ConvexValue::Array(_)
-            | ConvexValue::Set(_)
-            | ConvexValue::Map(_)
-            | ConvexValue::Object(_) => FivetranValue::Json(value.export().to_string()),
+            ConvexValue::Array(_) | ConvexValue::Object(_) => {
+                FivetranValue::Json(value.export().to_string())
+            },
         }
     }
 }

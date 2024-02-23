@@ -1,5 +1,11 @@
 # Upcoming
 
+# 0.6.0
+
+- Update rust nightly version in .rust-toolchain
+- Remove deprecated set/map support
+- Add gzip support to connector
+
 # 0.5.0
 
 - Emit a TRUNCATE op before the first write to any given table (in case it's a
