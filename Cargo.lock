@@ -5188,6 +5188,7 @@ dependencies = [
  "async-trait",
  "common 0.1.0",
  "convex_macro",
+ "divan",
  "errors",
  "futures",
  "futures-async-stream",
