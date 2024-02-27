@@ -3,6 +3,21 @@
 version = 3
 
 [[package]]
+name = "_convex"
+version = "0.1.0"
+dependencies = [
+ "convex",
+ "futures",
+ "parking_lot",
+ "pyo3",
+ "pyo3-asyncio",
+ "pyo3-build-config 0.20.2",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7972,20 +7987,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "py_client"
-version = "0.1.0"
-dependencies = [
- "convex",
- "futures",
- "parking_lot",
- "pyo3",
- "pyo3-asyncio",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "pyo3"
 version = "0.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7996,7 +7997,7 @@ dependencies = [
  "libc",
  "memoffset 0.9.0",
  "parking_lot",
- "pyo3-build-config",
+ "pyo3-build-config 0.19.1",
  "pyo3-ffi",
  "pyo3-macros",
  "unindent",
@@ -8026,13 +8027,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "pyo3-build-config"
+version = "0.20.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "07426f0d8fe5a601f26293f300afd1a7b1ed5e78b2a705870c5f30893c5163be"
+dependencies = [
+ "once_cell",
+ "target-lexicon",
+]
+
+[[package]]
 name = "pyo3-ffi"
 version = "0.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "922ede8759e8600ad4da3195ae41259654b9c55da4f7eec84a0ccc7d067a70a4"
 dependencies = [
  "libc",
- "pyo3-build-config",
+ "pyo3-build-config 0.19.1",
 ]
 
 [[package]]
@@ -8056,16 +8067,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
-]
-
-[[package]]
-name = "python_client_tests"
-version = "0.1.0"
-dependencies = [
- "proptest",
- "pyo3",
- "serde_json",
- "value",
 ]
 
 [[package]]
