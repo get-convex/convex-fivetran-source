@@ -11,7 +11,7 @@ dependencies = [
  "parking_lot",
  "pyo3",
  "pyo3-asyncio",
- "pyo3-build-config 0.20.2",
+ "pyo3-build-config 0.20.3",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -222,6 +222,7 @@ dependencies = [
  "serde",
  "serde_json",
  "slugify",
+ "storage",
  "strum",
  "tempfile",
  "thiserror",
@@ -289,6 +290,7 @@ dependencies = [
  "serde_json",
  "simple-process-stats",
  "slugify",
+ "storage",
  "strum",
  "tempfile",
  "thiserror",
@@ -1212,6 +1214,7 @@ dependencies = [
  "rand 0.8.5",
  "runtime",
  "serde_json",
+ "storage",
  "tokio",
  "tracing",
  "value",
@@ -1235,6 +1238,7 @@ dependencies = [
  "pb",
  "runtime",
  "serde_json",
+ "storage",
 ]
 
 [[package]]
@@ -1408,6 +1412,7 @@ dependencies = [
  "sodiumoxide",
  "sourcemap",
  "sqlite",
+ "storage",
  "strum",
  "sync",
  "tempfile",
@@ -3157,6 +3162,7 @@ dependencies = [
  "serde",
  "serde_json",
  "slab",
+ "storage",
  "tempfile",
  "tracing",
  "type_inference",
@@ -3229,6 +3235,7 @@ dependencies = [
  "serde_json",
  "sodiumoxide",
  "sqlite",
+ "storage",
  "tempfile",
  "tracing",
  "url",
@@ -4043,6 +4050,7 @@ dependencies = [
  "mime",
  "model",
  "runtime",
+ "storage",
  "tracing",
  "usage_tracking",
  "value",
@@ -4279,6 +4287,7 @@ dependencies = [
  "runtime",
  "search",
  "serde_json",
+ "storage",
  "tokio",
  "tonic",
  "type_inference",
@@ -4328,6 +4337,7 @@ dependencies = [
  "sentry",
  "serde_json",
  "sqlite",
+ "storage",
  "tokio",
  "tonic",
  "tonic-health",
@@ -5385,6 +5395,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sourcemap",
+ "storage",
  "tempfile",
  "thiserror",
  "tokio",
@@ -5900,6 +5911,7 @@ dependencies = [
  "serde_json",
  "sodiumoxide",
  "sqlite",
+ "storage",
  "sync",
  "tempfile",
  "tokio",
@@ -6271,6 +6283,7 @@ dependencies = [
  "semver 1.0.19",
  "serde",
  "serde_json",
+ "storage",
  "strum",
  "tempfile",
  "thiserror",
@@ -6588,6 +6601,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sourcemap",
+ "storage",
  "tempfile",
  "tokio",
  "tracing",
@@ -8029,9 +8043,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-build-config"
-version = "0.20.2"
+version = "0.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07426f0d8fe5a601f26293f300afd1a7b1ed5e78b2a705870c5f30893c5163be"
+checksum = "deaa5745de3f5231ce10517a1f5dd97d53e5a2fd77aa6b5842292085831d48d7"
 dependencies = [
  "once_cell",
  "target-lexicon",
@@ -8975,6 +8989,7 @@ dependencies = [
  "search",
  "segment",
  "serde_json",
+ "storage",
  "tempfile",
  "tracing",
  "vector",
@@ -9032,6 +9047,7 @@ dependencies = [
  "segment",
  "serde",
  "serde_json",
+ "storage",
  "sucds",
  "tantivy",
  "tempfile",
@@ -9065,6 +9081,7 @@ dependencies = [
  "runtime",
  "search",
  "sentry",
+ "storage",
  "tempfile",
  "tokio",
  "tonic",
@@ -10162,6 +10179,34 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
+name = "storage"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
+ "bytes",
+ "common 0.1.0",
+ "convex_macro",
+ "derive_more",
+ "futures",
+ "futures-async-stream",
+ "http",
+ "hyper",
+ "pb",
+ "pin-project",
+ "runtime",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "textplots",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "value",
+]
+
+[[package]]
 name = "string_cache"
 version = "0.8.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11230,7 +11275,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
  "cfg-if",
- "rand 0.7.3",
+ "rand 0.8.5",
  "static_assertions",
 ]
 
@@ -11658,6 +11703,7 @@ dependencies = [
  "segment",
  "serde",
  "serde_json",
+ "storage",
  "tempfile",
  "tokio",
  "tracing",
