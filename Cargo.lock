@@ -202,6 +202,7 @@ dependencies = [
  "semver 1.0.19",
  "serde",
  "serde_json",
+ "shape_inference",
  "slugify",
  "storage",
  "strum",
@@ -209,7 +210,6 @@ dependencies = [
  "thiserror",
  "thousands",
  "tracing",
- "type_inference",
  "url",
  "usage_tracking",
  "value",
@@ -269,6 +269,7 @@ dependencies = [
  "sentry",
  "serde",
  "serde_json",
+ "shape_inference",
  "simple-process-stats",
  "slugify",
  "storage",
@@ -276,7 +277,6 @@ dependencies = [
  "tempfile",
  "thiserror",
  "tracing",
- "type_inference",
  "usage_tracking",
  "usage_tracking_worker",
  "value",
@@ -1274,6 +1274,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "shape_inference",
  "sodiumoxide",
  "sourcemap",
  "sqlite",
@@ -1291,7 +1292,6 @@ dependencies = [
  "tower-http",
  "tracing",
  "tungstenite",
- "type_inference",
  "url",
  "usage_tracking",
  "uuid",
@@ -2275,6 +2275,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "shape_inference",
  "sourcemap",
  "strum",
  "tempfile",
@@ -2290,7 +2291,6 @@ dependencies = [
  "tracy-client",
  "tungstenite",
  "tuple_struct",
- "type_inference",
  "url",
  "uuid",
  "value",
@@ -3035,11 +3035,11 @@ dependencies = [
  "segment",
  "serde",
  "serde_json",
+ "shape_inference",
  "slab",
  "storage",
  "tempfile",
  "tracing",
- "type_inference",
  "usage_tracking",
  "value",
  "vector",
@@ -4151,10 +4151,10 @@ dependencies = [
  "runtime",
  "search",
  "serde_json",
+ "shape_inference",
  "storage",
  "tokio",
  "tonic",
- "type_inference",
  "url",
  "usage_tracking",
  "value",
@@ -5246,6 +5246,7 @@ dependencies = [
  "semver 1.0.19",
  "serde",
  "serde_json",
+ "shape_inference",
  "sourcemap",
  "storage",
  "tempfile",
@@ -5253,7 +5254,6 @@ dependencies = [
  "tokio",
  "tonic",
  "tracing",
- "type_inference",
  "url",
  "usage_tracking",
  "uuid",
@@ -9449,6 +9449,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "shape_inference"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "base64 0.13.1",
+ "convex_sync_types",
+ "itertools 0.12.1",
+ "maplit",
+ "proptest",
+ "serde",
+ "serde_json",
+ "value",
+]
+
+[[package]]
 name = "sharded-slab"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11092,21 +11107,6 @@ dependencies = [
  "cfg-if",
  "rand 0.8.5",
  "static_assertions",
-]
-
-[[package]]
-name = "type_inference"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "base64 0.13.1",
- "convex_sync_types",
- "itertools 0.12.1",
- "maplit",
- "proptest",
- "serde",
- "serde_json",
- "value",
 ]
 
 [[package]]
