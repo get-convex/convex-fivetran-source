@@ -1275,7 +1275,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "sodiumoxide",
- "sourcemap 6.2.3",
+ "sourcemap",
  "sqlite",
  "storage",
  "strum",
@@ -2275,7 +2275,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "sourcemap 6.2.3",
+ "sourcemap",
  "strum",
  "tempfile",
  "textplots",
@@ -3183,7 +3183,7 @@ dependencies = [
  "serde_json",
  "serde_v8",
  "smallvec",
- "sourcemap 7.0.1",
+ "sourcemap",
  "static_assertions",
  "tokio",
  "url",
@@ -5246,7 +5246,7 @@ dependencies = [
  "semver 1.0.19",
  "serde",
  "serde_json",
- "sourcemap 6.2.3",
+ "sourcemap",
  "storage",
  "tempfile",
  "thiserror",
@@ -6412,7 +6412,7 @@ dependencies = [
  "runtime",
  "serde",
  "serde_json",
- "sourcemap 6.2.3",
+ "sourcemap",
  "storage",
  "tempfile",
  "tokio",
@@ -9687,21 +9687,6 @@ dependencies = [
  "libc",
  "libsodium-sys",
  "serde",
-]
-
-[[package]]
-name = "sourcemap"
-version = "6.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eed16231c92d0a6f0388f56e0ab2be24ecff1173f8e22f0ea5e074d0525631cb"
-dependencies = [
- "data-encoding",
- "if_chain",
- "rustc_version 0.2.3",
- "serde",
- "serde_json",
- "unicode-id",
- "url",
 ]
 
 [[package]]
