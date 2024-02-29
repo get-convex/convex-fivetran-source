@@ -8852,7 +8852,6 @@ dependencies = [
  "async-trait",
  "async_lru",
  "async_zip",
- "bitpacking",
  "bitvec",
  "bytes",
  "bytesize",
