@@ -6481,6 +6481,7 @@ dependencies = [
  "home",
  "http 0.2.9",
  "isolate",
+ "itertools 0.12.1",
  "keybroker",
  "maplit",
  "metrics",
