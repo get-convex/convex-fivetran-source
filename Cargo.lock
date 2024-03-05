@@ -274,6 +274,7 @@ dependencies = [
  "node_executor",
  "parking_lot",
  "pb",
+ "performance_stats",
  "prometheus",
  "rand 0.8.5",
  "regex",
@@ -1209,7 +1210,6 @@ dependencies = [
  "humansize",
  "hyper",
  "isolate",
- "jemalloc_pprof",
  "jsonschema",
  "keybroker",
  "local_backend",
@@ -1222,6 +1222,7 @@ dependencies = [
  "mysql",
  "parking_lot",
  "pb",
+ "performance_stats",
  "portpicker",
  "postgres",
  "product_tracking",
@@ -2270,7 +2271,6 @@ dependencies = [
  "sourcemap",
  "strum",
  "tempfile",
- "textplots",
  "thiserror",
  "tokio",
  "tonic",
@@ -4246,6 +4246,7 @@ dependencies = [
  "mysql_async",
  "parking_lot",
  "pb",
+ "performance_stats",
  "postgres",
  "prometheus",
  "rand 0.8.5",
@@ -5752,6 +5753,7 @@ dependencies = [
  "log_interleaver",
  "maplit",
  "metrics",
+ "performance_stats",
  "prometheus",
  "rand 0.8.5",
  "runtime",
@@ -7138,6 +7140,24 @@ name = "percent-encoding"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b2a4787296e9989611394c33f193f676704af1686e70b8f8033ab5ba9a35a94"
+
+[[package]]
+name = "performance_stats"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "common 0.1.0",
+ "errors",
+ "humansize",
+ "jemalloc_pprof",
+ "parking_lot",
+ "serde",
+ "serde_json",
+ "textplots",
+ "tikv-jemalloc-sys",
+ "tikv-jemallocator",
+]
 
 [[package]]
 name = "permutation_iterator"
@@ -10166,7 +10186,6 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
- "textplots",
  "thiserror",
  "tokio",
  "tracing",
