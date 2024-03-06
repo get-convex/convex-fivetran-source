@@ -3773,6 +3773,7 @@ dependencies = [
 name = "events"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "proptest",
  "proptest-derive",
  "serde",
@@ -11517,6 +11518,7 @@ dependencies = [
  "common 0.1.0",
  "database",
  "errors",
+ "events",
  "imbl",
  "keybroker",
  "metrics",
