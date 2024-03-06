@@ -4235,6 +4235,7 @@ dependencies = [
  "errors",
  "function_runner",
  "futures",
+ "futures-async-stream",
  "hex",
  "indexing",
  "isolate",
@@ -6497,6 +6498,7 @@ dependencies = [
  "storage",
  "tempfile",
  "tokio",
+ "tokio-process-stream",
  "tracing",
  "value",
 ]
@@ -10902,6 +10904,21 @@ dependencies = [
  "tokio",
  "tokio-util",
  "whoami",
+]
+
+[[package]]
+name = "tokio-process-stream"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f09c7fc9546d3b9586bc95c58ac2bdb48b07c538a26e317b558e6de2fac98b8"
+dependencies = [
+ "anyhow",
+ "bytes",
+ "futures",
+ "pin-project-lite",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
 ]
 
 [[package]]
