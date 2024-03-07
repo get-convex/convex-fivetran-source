@@ -3231,6 +3231,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1a467a65c5e759bce6e65eaf91cc29f466cdc57cb65777bd646872a8a1fd4de"
 dependencies = [
  "const-oid",
+ "pem-rfc7468 0.6.0",
  "zeroize",
 ]
 
@@ -3241,7 +3242,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05e58dffcdcc8ee7b22f0c1f71a69243d7c2d9ad87b5a14361f2424a1565c219"
 dependencies = [
  "const-oid",
- "pem-rfc7468",
+ "pem-rfc7468 0.7.0",
  "zeroize",
 ]
 
@@ -3508,6 +3509,8 @@ dependencies = [
  "ff 0.12.1",
  "generic-array",
  "group 0.12.1",
+ "hkdf",
+ "pem-rfc7468 0.6.0",
  "pkcs8 0.9.0",
  "rand_core 0.6.4",
  "sec1 0.3.0",
@@ -3528,7 +3531,7 @@ dependencies = [
  "generic-array",
  "group 0.13.0",
  "hkdf",
- "pem-rfc7468",
+ "pem-rfc7468 0.7.0",
  "pkcs8 0.10.2",
  "rand_core 0.6.4",
  "sec1 0.7.3",
@@ -5285,12 +5288,14 @@ dependencies = [
  "bytes",
  "cmd_util",
  "common 0.1.0",
+ "const-oid",
  "convex_macro",
  "convex_sync_types",
  "database",
  "deno_core",
  "deno_core_icudata",
  "derive_more",
+ "elliptic-curve 0.12.3",
  "encoding_rs",
  "errors",
  "file_storage",
@@ -5309,6 +5314,8 @@ dependencies = [
  "mime",
  "model",
  "must-let",
+ "p256 0.11.1",
+ "p384 0.11.2",
  "parking_lot",
  "pb",
  "phf 0.11.1",
@@ -5322,6 +5329,7 @@ dependencies = [
  "regex",
  "request_context",
  "ring 0.17.8",
+ "rsa",
  "runtime",
  "search",
  "semver 1.0.19",
@@ -5329,6 +5337,7 @@ dependencies = [
  "serde_json",
  "shape_inference",
  "sourcemap",
+ "spki 0.7.3",
  "storage",
  "tempfile",
  "thiserror",
@@ -6797,7 +6806,7 @@ dependencies = [
  "log",
  "oauth2",
  "p256 0.13.2",
- "p384",
+ "p384 0.13.0",
  "rand 0.8.5",
  "rsa",
  "serde",
@@ -6985,6 +6994,17 @@ dependencies = [
 
 [[package]]
 name = "p384"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dfc8c5bf642dde52bb9e87c0ecd8ca5a76faac2eeed98dedb7c717997e1080aa"
+dependencies = [
+ "ecdsa 0.14.8",
+ "elliptic-curve 0.12.3",
+ "sha2",
+]
+
+[[package]]
+name = "p384"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "70786f51bcc69f6a4c0360e063a4cac5419ef7c5cd5b3c99ad70f3be5ba79209"
@@ -7128,6 +7148,15 @@ checksum = "3163d2912b7c3b52d651a055f2c7eec9ba5cd22d26ef75b8dd3a59980b185923"
 dependencies = [
  "base64 0.21.0",
  "serde",
+]
+
+[[package]]
+name = "pem-rfc7468"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "24d159833a9105500e0398934e205e0773f0b27529557134ecfc51c27646adac"
+dependencies = [
+ "base64ct",
 ]
 
 [[package]]
