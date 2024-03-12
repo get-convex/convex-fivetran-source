@@ -2,7 +2,7 @@
 name = "convex_fivetran_source"
 description = "Fivetran source connector for Convex (convex.dev)"
 version = "0.6.0"
-authors = [ "Convex, Inc. <team@convex.dev>" ]
+authors = [ "Convex, Inc. <no-reply@convex.dev>" ]
 edition = "2021"
 resolver = "2"
 license = "Apache-2.0"
