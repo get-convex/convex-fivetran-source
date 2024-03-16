@@ -4231,6 +4231,7 @@ dependencies = [
  "indexing",
  "isolate",
  "keybroker",
+ "lru 0.12.0",
  "metrics",
  "model",
  "model_private",
