@@ -69,14 +69,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "kebab-case")]
 struct LogLine<'a> {
     level: &'a str,
     message: &'a str,
+    message_origin: &'a str,
 }
 pub fn log(message: &str) {
     let result = serde_json::to_string(&LogLine {
         level: "INFO",
         message,
+        message_origin: "sdk_connector",
     });
     match result {
         Ok(msg) => println!("{msg}"),
